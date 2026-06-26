@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Pre-Processing</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Data Pre-Processing</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-01-10</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/data-pre-processing-guide</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Avoiding key mistakes and getting the most out of your data</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/cacca0081811.webp"><img alt="cover photo" src="images/2169cb3edae2.webp" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>Before any research can be conducted, we must prepare our data and, in doing so, transform it into the most useful version of itself. There are two reasons here as to why we need to pre-process our data:</p>
+<ol>
+<li>
+<p>Removal of errors (accuracy)</p>
+</li>
+<li>
+<p>Structuring, reduction, &amp; transformation of data (makes analysis efficient)</p>
+</li>
+</ol>
+<p>In this article, we walk through best practices for each of these areas/reasons behind data pre-processing with the aim of improving readers' research abilities and hopefully avoiding common mistakes that beginners and even more experienced practitioners often make.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Ensuring Accuracy</p>
+</li>
+<li>
+<p>Transformation and Reduction of Data</p>
+</li>
+<li>
+<p>Final Remarks</p>
+</li>
+</ol>
+<h4>Ensuring Accuracy</h4>
+<hr />
+<p>Accuracy can take many forms beyond ensuring the data’s values are correct. We need to ensure that our data is not misleading us subtly. This section goes beyond the data being wrong to common issues faced because of misuse or misdirection in/of the data as well.</p>
+<p><em><strong>Bid/Ask Bounce:</strong></em></p>
+<p>This phenomenon occurs when the price bounces between the bid and ask prices. Most providers will form their candlesticks from trade prices and not from mid-price. This leads to issues where we observe the close price oscillating up and down on illiquid assets by large amounts and perceive this as mean-reversion. Thus, making all candlesticks out of mid-price data is generally considered wise, which typically has to be done manually as vendors don’t provide this.</p>
+<p><em><strong>Aggregated Multi-Venue Prices:</strong></em></p>
+<p>Especially in markets with a high degree of fractured liquidity or differences in trading costs (for various reasons), we may see vastly different prices when comparing venues. This may not necessarily be arbitrage-able since these prices typically are not inclusive of fees, but when prices are formed from the aggregation of multiple venues, you can find:</p>
+<ol>
+<li>
+<p>Massively inaccurate high - low price differences.</p>
+</li>
+<li>
+<p>False mean-reversion as the price oscillates between the price on two different venues. </p>
+</li>
+</ol>
+<p><em><strong>OTC Price Inclusion:</strong></em></p>
+<p>Some exchanges, especially for digital assets, will include OTC trades in the main trade feed, so errors can occur when these trade prices do not match the calculated best bid/ask. This usually creates issues related to assuming the current state of the orderbook. Trades are typically sent out before quotes are, so when trades occur, people will also use this information to update their orderbook. This creates problems when the trades don’t actually impact the orderbook due to their OTC nature - creating a momentary false perception of the orderbook.</p>
+<p><em><strong>Trade Aggregation:</strong></em></p>
+<p>Whilst this does not necessarily create issues when used properly, there are mistakes that can easily be made when researchers do not differentiate between individual trades and aggregate trades. If I send an order for 1000 units and 100 matches at the first level, I will create one trade for 100 at the first level of the book, and so on, for every price my order impacts through. Some exchanges / vendors will show each trade, whereas others will simply show the average trade price and aggregate them all as one.</p>
+<p>It is important to know the relevant kind of trades to use. If we are detecting TWAP algorithms, we probably want to use aggregated trades because we care about the size/frequency of the aggregate order and not how it ended up impacting the book. </p>
+<p>We may have situations where both are relevant, such as estimating the probability of getting filled at a level of the orderbook. We certainly will need to look at the individual trades to determine which levels of the book get impacted, but on the same note, we need to ensure that our simulation understands that all these orders arrive at the exact same time. If our model calculates that 10 of the individual orders from an aggregate order would have filled us, and we then make a hedge trade because of those fills - we can’t assume that liquidity can be re-used.</p>
+<p><em><strong>Wash Trading &amp; Fake Liquidity:</strong></em></p>
+<p>Often, cryptocurrency exchanges add fake trades to the trade feed and try to prop up their volume statistics. When you actually go to quote in those books, you will find that these trades match at prices worse than yours - even if you are the best level in the book, all without you getting a single fill. Why is this? Fake flow. That’s why. It can lead to drastic overestimations of your ability to get filled in a book or the ability to slowly execute size through the book without being detected/moving the market. On the liquidity side, dirty exchanges will have fake quotes that get pulled immediately after one of them gets hit. You can still hit them, but the second you do, they’ll all disappear. Not all liquidity you see is really there with the intent of liquidity provision - some is there to meet the terms of an agreement and will flash away the second you test it. With this sort of liquidity, it is best to hit it all in one go and skip the VWAP/TWAP algorithms - take it before you lose it. </p>
+<p><em><strong>Adjusted Data:</strong></em></p>
+<p>Especially with financial data, the data will be edited after it is released. Perhaps there was an error or, worse, an accounting fraud took place - so after the fact, the data was edited to reflect the true value of it. The asset’s price for that period will not reflect this, of course, nor would the information present to traders at the time. Thus, you end up with look-ahead bias as you algorithm prices in the accounting fraud/error before it is even made public. </p>
+<p>This is not just the case with financial data; many datasets are adjusted later on for various reasons. It is critical to ensure that the data is as it was when it was released and not in its post-correction form.</p>
+<p><em><strong>Differences Between Data Vendors:</strong></em></p>
+<p>Alternative data frequently has issues where the measurements of one provider is drastically different from another. An example where I have seen this consistently is with on-chain / fundamental data for cryptocurrencies. Vendors will provide wildly different estimates of various metrics, such as global volume, with some filtering out wash volume and others including it. </p>
+<p>There are ways to get around this, with the best being to use multiple sources and triangulate the correct value using three or more vendors. </p>
+<p>Flow data commonly has this issue as well, where estimates of OTC flow will vary due to the inclusion of different markets or even a lack of care from the vendors themselves.</p>
+</article>
+</body>
+</html>

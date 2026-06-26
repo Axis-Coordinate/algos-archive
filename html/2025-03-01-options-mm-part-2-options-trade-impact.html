@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options MM Part 2 - Options Trade Impact Modelling [CODE INSIDE]</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Options MM Part 2 - Options Trade Impact Modelling [CODE INSIDE]</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2025-03-01</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/options-mm-part-2-options-trade-impact</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>How to price any trade into your volatility curve</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>When a trade happens on an options exchange there is a brief moment between the trade occurring and the rest of the options curve pricing it in. If you are an options market maker it is unwise to wait for everyone else to update their quotes so that you can update yours. You need to have figured out how the trade affects the pricing of every option on the curve at the same time as everyone else (which will be when the trade gets received from the trade feed). </p>
+<p>This is not a modelling task exclusive to market makers, you also can run it as a taker. If a large order hits the market and you feel market makers have priced it poorly, you can pick them off. You don’t necessarily need to be fighting over microseconds, many impact models regard the evolution of prices over 15 minutes etc after the fill (mostly for large impacts only). That said, most impact models price in an average sized trade, and with a very short forecast horizon.</p>
+<p>We’ll be working with the Wing model because SSVI is too simple for us, and I want to model put and call wing dynamics and not just simple volatility goes up vs down type of things.</p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Data</p>
+</li>
+<li>
+<p>Impact Modelling (Pre-Processing / Data Wrangling)</p>
+</li>
+<li>
+<p>Impact Modelling</p>
+</li>
+</ol>
+<h3>Data</h3>
+<hr />
+<p>In the previous article, we already scraped the data so you can either refer back to that or just read the same code below: </p>
+<pre class="codehilite"><code>import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import sys
+import os
+
+tardis_api_key='get your own from tardis.dev (I don't get paid I just like them)'
+
+from research_tools.scraping.tardis import *
+from research_tools.preprocessing.process_oa_orders import parse_option_characteristics
+
+exchange='deribit'
+
+scrape_tardis_data(
+    data_types_list=['quotes', 'trades', 'derivative_ticker'],
+    start_date='2024-11-28',
+    end_date='2024-12-02',
+    instrument_type='futures',
+    exchange_names=['deribit'],
+    tardis_api_key=tardis_api_key,
+    symbols_to_scrape=['BTC-PERPETUAL', 'ETH-PERPETUAL']
+)
+
+options_tickers = get_tickers(exchange, return_type='pandas')
+
+options_tickers = options_tickers[options_tickers['type'] == 'option']
+options_tickers = options_tickers[options_tickers['id'].str[:3].isin([&quot;BTC&quot;])]
+
+options_tickers[['base_asset', 'expiry_dt', 'strike_price', 'option_type']] = options_tickers['id'].apply(
+    lambda symbol: pd.Series(parse_option_characteristics(symbol, 'DERIBIT'))
+)
+
+expiry_dt = '2024-12-01 08:00:00'
+
+options_tickers = options_tickers[options_tickers.expiry_dt == expiry_dt]
+options_tickers = options_tickers[options_tickers.availableSince == &quot;2024-11-28 00:00:00+00:00&quot;]
+
+scrape_tardis_data(
+    data_types_list=['quotes', 'derivative_ticker', 'trades'],
+    start_date='2024-11-28',
+    end_date='2024-12-02',
+    instrument_type='options',
+    exchange_names=['deribit'],
+    tardis_api_key=tardis_api_key,
+    symbols_to_scrape=options_tickers['id'].tolist()
+)
+</code></pre>
+
+<p>We will be working with quote data (to fit our curve), trade data (for our impacts), and derivative_ticker data (to adjust coin terms into USD terms).</p>
+<h3>Impact Modelling (Pre-Processing / Data Wrangling)</h3>
+<hr />
+<p>We will assume we are working in the same notebook as the first article, so please follow along with the code there to understand how to get a DataFrame of parameters as we will be analysing this. </p>
+<pre class="codehilite"><code>params = {}
+for ts in tqdm(timestamps):
+    current_index_price = index_px.loc[ts].index_price
+    otm_options = get_otm_options(current_index_price, symbols)
+    current_df = get_quotes_for_timestamp(options_data, otm_options, ts)
+    current_df = adjust_prices(current_index_price, current_df)
+    prepped_wing_df = prepare_data_for_wing_model(current_df, expiry_dt, current_index_price)
+    x_array   = prepped_wing_df[&quot;x&quot;].values
+    iv_array  = prepped_wing_df[&quot;iv&quot;].values
+    vega_array= prepped_wing_df[&quot;vega&quot;].values
+    p, loss, arb_indicator = ArbitrageFreeWingModel.calibrate(
+        x_array, iv_array, vega_array,
+        dc=-0.2,
+        uc=0.2,
+        dsm=0.5,
+        usm=0.5,
+        epochs=10,
+        use_constraints=True
+    )
+    params[ts] = p
+</code></pre>
+
+<p>As a note related to our params, you can generate it for the Wing model instead, with this as an example for our regular interval parameters (we will use a slightly different timestamping). The only reason I have stuck with SSVI is because it’s much slower to use the Wing model. Ideally, we would have all of this in some Rust or C++ tooling with Python bindings, but instead we are stuck with slow Python for now. In a later article, we may convert them… we’ll see how far this series goes.</p>
+<p>This time around, we need trade data, so let’s load that in:</p>
+<pre class="codehilite"><code>symbols = options_tickers['id'].tolist()
+
+trade_data = {}
+
+for symbol in symbols:
+    data_folder_path = Path(os.path.join(base_folder_path, symbol, 'trades'))
+    gz_files = list(data_folder_path.glob('*.csv.gz'))
+    curr_df = pd.DataFrame()
+    for gz_file in gz_files:
+        try:
+            temp_df = pd.read_csv(gz_file, compression='gzip')
+            if not temp_df.empty:
+                temp_df['timestamp'] = pd.to_datetime(temp_df['timestamp'], unit='us')
+                temp_df = temp_df.set_index('timestamp', drop=True)
+                curr_df = pd.concat([curr_df, temp_df], axis=0).sort_index()
+        except:
+            pass
+    trade_data[symbol] = curr_df
+</code></pre>
+
+<p>If you haven’t noticed, it’s the same code as we used for loading in the options quote data, but with a renaming of the dict and changing the folder to trades (this is specific to how I have my flat files stored, change for your own).</p>
+<pre class="codehilite"><code>df_trades = pd.DataFrame()
+for symbol, df in trade_data.items():
+    df_trades = pd.concat([df_trades, df], axis=0)
+</code></pre>
+
+<p>We’ll aggregate this back up again, probably could have done that in the earlier code, but we were re-using old code so this is easier…</p>
+<pre class="codehilite"><code>df_trades = df_trades.sort_index()
+</code></pre>
+
+<p>Sort the index as well, we want the trades in order. Next, we will shift the index, you are welcome to play around with how much we shift it, but it’s effectively our lookahead horizon. Keep in mind that fitting a vol curve is expensive computationally so in crypto the prices tend not to update insanely fast like they would in perps. 2.5 seconds is much more than it takes, but I figured I would be safe:</p>
+<pre class="codehilite"><code>lookahead_time_usec = 2_500_000
+forward_shifted_index = list(df_trades.index + pd.Timedelta(microseconds=lookahead_time_usec))
+unshifted_index = list(df_trades.index)
+</code></pre>
+
+<p>Now, let’s get our before, and after datasets:</p>
+<pre class="codehilite"><code>import py_vollib_vectorized
+
+before_params = {}
+trade_data = {}
+for i, ts in tqdm(enumerate(unshifted_index), total=len(unshifted_index)):
+    current_trade = df_trades.iloc[i]
+    pos = index_px.index.searchsorted(ts, side='left')
+    current_index_price = index_px.iloc[pos].index_price
+    current_trade['price'] *= current_index_price
+    otm_options = get_otm_options(current_index_price, symbols)
+    current_df = get_quotes_for_timestamp(options_data, otm_options, ts)
+    p = None
+    delta = None
+    if not current_df.empty:
+        current_df = adjust_prices(current_index_price, current_df)
+        p, curve, mkt_ivs = fit_ssvi_from_df(current_df, expiry_dt, current_index_price)
+        base_asset, expiry_dt, strike_px, option_type = parse_option_characteristics(current_trade['symbol'], current_trade['exchange'])
+        iv = curve(np.log(strike_px / current_index_price))
+        t = (expiry_dt - current_trade.name).total_seconds() / 31_536_000
+        r = 0
+        delta = py_vollib_vectorized.vectorized_delta(
+            option_type.lower(),
+            current_index_price,
+            strike_px,
+            t, 
+            r, 
+            iv,
+            model='black_scholes',
+            return_as='numpy'
+        )[0]
+    trade_data[ts] = {&quot;delta&quot; : delta, &quot;size&quot;: current_trade[&quot;amount&quot;], &quot;side&quot;: current_trade['side'], &quot;price&quot;: current_trade['price']} 
+    before_params[ts] = p
+
+
+after_params = {}
+for ts in tqdm(forward_shifted_index):
+    pos = index_px.index.searchsorted(ts, side='left')
+    current_index_price = index_px.iloc[pos].index_price
+    otm_options = get_otm_options(current_index_price, symbols)
+    current_df = get_quotes_for_timestamp(options_data, otm_options, ts)
+    p = None
+    if not current_df.empty:
+        current_df = adjust_prices(current_index_price, current_df)
+        p, curve, mkt_ivs = fit_ssvi_from_df(current_df, expiry_dt, current_index_price)
+    after_params[ts] = p
+</code></pre>
+
+<p>And put them in a DataFrame:</p>
+<pre class="codehilite"><code>df_before_params = pd.DataFrame(before_params)
+df_before_params = df_before_params.T
+df_before_params
+</code></pre>
+
+<p><a href="images/d1288cf8ccb9.png"><img alt="" src="images/37a0a1abb9f3.png" /></a></p>
+<pre class="codehilite"><code>df_after_params = pd.DataFrame(after_params)
+df_after_params = df_after_params.T
+df_after_params
+</code></pre>
+
+<p><a href="images/df3e802a85c1.png"><img alt="" src="images/82f15f67517f.png" /></a></p>
+<pre class="codehilite"><code>df_trade_data = pd.DataFrame(trade_data)
+df_trade_data = df_trade_data.T
+df_trade_data
+</code></pre>
+
+<p><a href="images/c891996e4635.png"><img alt="" src="images/22b431a2057e.png" /></a></p>
+<p>And to merge them we unshift the index on the after frame:</p>
+<pre class="codehilite"><code>df_after_params.index -= pd.Timedelta(microseconds=lookahead_time_usec)
+</code></pre>
+
+<p>Then we can merge them:</p>
+<pre class="codehilite"><code>df_params = pd.DataFrame(index=df_before_params.index)
+
+for col_name in df_before_params:
+    df_params[f'{col_name}_before'] = df_before_params[col_name]
+    df_params[f'{col_name}_after'] = df_after_params[col_name]
+
+for col_name in df_trade_data:
+    df_params[col_name] = df_trade_data[col_name]
+
+df_params = df_params.dropna()
+</code></pre>
+
+<p><a href="images/2abf503d0089.png"><img alt="" src="images/fe059b08daf8.png" /></a></p>
+<p>Let's add a few extra columns I think will be useful:</p>
+</article>
+</body>
+</html>

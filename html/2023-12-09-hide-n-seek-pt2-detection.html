@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hide N’ Seek Pt.2 - Detection</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Hide N’ Seek Pt.2 - Detection</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-12-09</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/hide-n-seek-pt2-detection</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Detecting execution algorithms: tips, ideas, &amp; models</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/427c67c9c1c5.webp"><img alt="image" src="images/0c14402d4dc6.webp" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>In our last article, we looked at how to avoid detection through some simple distribution matching techniques. We want to make sure that for any variable that describes the market (order size, frequency, type, etc) our orders do not significantly skew the distribution as to give ourselves away.</p>
+<p>These are fine for most cases and even if there is some signal of our execution, we will probably have made it very noisy with our efforts. That said, there are more detailed approaches to detecting execution algorithms. </p>
+<p>In this part of our 3 part series, we will explore multiple models and techniques for detecting execution algorithms. That said, we will not yet have a complete strategy - that will be the final article in the series where we put it all together into a real trading strategy.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Data</p>
+</li>
+<li>
+<p>Overview of Methodologies</p>
+</li>
+<li>
+<p>Simple Methods</p>
+<ol>
+<li>
+<p>Recurring Frequencies</p>
+</li>
+<li>
+<p>Binning</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Fourier Approach</p>
+<ol>
+<li>
+<p>How it works</p>
+</li>
+<li>
+<p>Math + Formulas</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Global Orderbook Method</p>
+</li>
+<li>
+<p>Conclusions</p>
+</li>
+<li>
+<p>Appendix:</p>
+<ol>
+<li>
+<p>Data Scraping Code</p>
+</li>
+<li>
+<p>Background Reading</p>
+</li>
+</ol>
+</li>
+</ol>
+<h4>Data</h4>
+<hr />
+<p>We will be using aggregate trade data pulled directly from major digital asset exchanges for this article. Code for scraping &amp; pre-processing will be shown in the appendix.</p>
+<p>We will look at both spot and futures markets:</p>
+<ul>
+<li>
+<p>Binance (Futures)</p>
+</li>
+<li>
+<p>Binance (Spot)</p>
+</li>
+<li>
+<p>Bybit (Futures)</p>
+</li>
+</ul>
+<p>There isn’t an immediate need for us to have multiple exchanges, but you’ll tend to find that strategies around flow and participant behavior will work amazingly on some exchanges and have no hint of effectiveness on others. Thus, we will shop around. </p>
+<h4>Overview of Methodologies</h4>
+<hr />
+<p>Whilst there are certainly quite a few methods for detecting execution algorithms, we will discuss roughly 4 approaches to this:</p>
+<ol>
+<li>
+<p>Recurring Sizes </p>
+</li>
+<li>
+<p>Binned Repetition</p>
+</li>
+<li>
+<p>Fourier Detection </p>
+</li>
+<li>
+<p>Global Orderbook Method</p>
+</li>
+</ol>
+<h4>Simple Methods</h4>
+<hr />
+<p>We won’t walk through the code for the simpler methods as there isn’t much of a model there, only a heuristic. </p>
+<p>The most basic model would be to test for any sizes that have been recurring. If the size 2000 gets printed every 20 seconds then we know someone is executing an order.</p>
+<p>I’ve seen this happen directly in front of me before, but the reason the model would not have picked it up is because of small differences in the size. It was 1999.53 then 1998.26 (arbitrarily made-up example, I can’t remember the sizes, but I did tweet about it at the time so maybe you can find it - it was roughly around 2k and every 20s though)</p>
+<p>Whilst a high recurrence of a certain size is certainly helpful, we want to make sure that we figure out the time schema - this then requires us to see if there is equal spacing (either in the time or volume spectrum depending on whether we are detecting TWAP or VWAPs) between the orders.</p>
+<p>This should be enough to detect any large TWAP or VWAP orders, but of course, people tend to be more complicated with their approaches and the binning approach still requires a fair bit of parameter tuning.</p>
+<h4>Fourier Approach</h4>
+<hr />
+<p><code>How It Works:</code></p>
+<p>The Fourier Transform is a mathematical operation that transforms a time-domain signal (a function of time) into a frequency-domain representation (a function of frequency). This transformation reveals the different frequency components (sinusoidal waves of different frequencies, amplitudes, and phases) that make up the original time-domain signal.</p>
+<p><code>Math + Formulas:</code></p>
+<p><strong>Discrete Fourier Transform (DFT)</strong> :</p>
+<p>For digital signals (like those in computers and digital processors), we use the DFT, which is the discrete version of the Fourier Transform. The DFT is given by the formula:</p>
+<p>X[k]=∑n=0N−1x[n]⋅e−i2πNkn</p>
+<p>Where:</p>
+<p>X[k] is the k-th element of the output (frequency domain).</p>
+<p>x[n] is the n-th element of the input (time domain).</p>
+<p>N is the total number of samples.</p>
+<p>e−i2πNkn is the complex exponential (a rotating phasor), i is the imaginary unit.</p>
+<p><strong>Fast Fourier Transform (FFT)</strong> :</p>
+<p>The FFT is an algorithm to compute the DFT more efficiently. The most common FFT algorithm, the Cooley-Tukey algorithm, reduces the computational complexity from <em>O</em>(<em>N^</em> 2) (for DFT) to <em>O</em>(<em>N</em> log <em>N</em>), which is a significant improvement for large <em>N</em>.</p>
+<p>The Cooley-Tukey algorithm is a divide-and-conquer algorithm that recursively breaks down the DFT of any composite size <em>N</em> = <em>n</em> 1​ <em>n</em> 2​ into many smaller DFTs of sizes <em>n</em> 1​ and <em>n</em> 2, exploiting the periodicity and symmetry properties of the complex exponential function.</p>
+<p>X[k]=∑n=0N/2−1x[2n]⋅e−i2πN(2n)k+e−i2πNk∑n=0N/2−1x[2n+1]⋅e−i2πN(2n)k</p>
+<p>We need to use the Non-Uniform Fast Fourier transform instead of normal FFT due to the non-uniformity of our trade data time series. The trades do not arrive at regular intervals and thus we must adapt to this. To save time the pynufft library (linked below) is used:</p>
+<p>https://jyhmiinlin.github.io/pynufft/</p>
+<p>I will leave it to the reader to dive more into the modifications behind NUFFT.</p>
+<h4>Global Orderbook Approach</h4>
+<hr />
+<p><code>How It Works:</code></p>
+<p>This is likely one of the best methods for detecting the execution of large sizes. We simply compare the global order book and the local order book of an exchange. The global order book is the aggregate of all exchanges’ order books put together, whereas the local order book is the one specific to that exchange.</p>
+<p>We can also use global vs local volume - this is also a powerful tool and frankly, they should be used together alongside each other. </p>
+<p>Spreads will widen after a large impact, and there will be other signs related to the toxicity of flow in the book so by looking at where spreads are relative to the global order book, we can detect if it is unusually high and also work with a much more normalized metric for applying Fourier too.</p>
+<p>In equities, it is a lot harder to try this approach as it is rare to see the same asset listed in many places, but for digital assets, it makes sense.</p>
+<h4>Appendix - a) Data Scraping Code</h4>
+<hr />
+<p>The snippets of code below are for 3 different sources. These are simply examples to show that data is very much freely available. The sheer amount of data processed in this research article means that proxies with parallelized scrapers were utilized (overkill for most applications, but it’s built into my scraping tool so not that bad). Technically not the full data scraping code, but this is code that I’ve tested &amp; it works.</p>
+<p><strong>Imports:</strong></p>
+<pre class="codehilite"><code>import pandas as pd;
+import requests;
+from tqdm import tqdm;
+from datetime import datetime as dt, timedelta;
+</code></pre>
+
+<p><strong>Binance (Futures):</strong></p>
+<pre class="codehilite"><code>binance_futures_base_url = &quot;https://fapi.binance.com&quot;;
+binance_futures_agg_trades = &quot;/fapi/v1/aggTrades&quot;;
+
+ts_24h_ago = int((dt.now() - timedelta(days=1)).timestamp() * 1_000);
+
+symbol = &quot;BTCUSDT&quot;;
+
+r = requests.get(f&quot;{binance_futures_base_url}{binance_futures_agg_trades}?symbol={symbol}&amp;startTime={ts_24h_ago}&amp;limit=1000&quot;).json()
+
+start_id = r[-1]['a'] + 1
+
+df = pd.DataFrame(r)
+
+for i in tqdm(range(100)): # replace range with how many trades you want /1000
+    r = requests.get(f&quot;{binance_futures_base_url}{binance_futures_agg_trades}?symbol={symbol}&amp;fromId={start_id}&amp;limit=1000&quot;).json()
+    start_id = r[-1]['a'] + 1
+    df = pd.concat([df, pd.DataFrame(r)])
+
+    if len(r) &lt; 1000:
+        break
+
+df.columns = ['tradeId', 'px', 'qty', 'firstId', 'lastId', 'timestamp', 'buyerMaker']
+df.to_parquet('Data/Binance/Futures/BTCUSDT_trades.parquet', index=False)
+</code></pre>
+
+<p>More help here:</p>
+<p>https://binance-docs.github.io/apidocs/futures/en/</p>
+<p><strong>Binance (Spot):</strong></p>
+<pre class="codehilite"><code>binance_spot_base_url = &quot;https://api.binance.com&quot;;
+binance_spot_agg_trades = &quot;/api/v3/aggTrades&quot;;
+
+ts_24h_ago = int((dt.now() - timedelta(days=1)).timestamp() * 1_000);
+
+symbol = &quot;BTCUSDT&quot;;
+
+r = requests.get(f&quot;{binance_spot_base_url}{binance_spot_agg_trades}?symbol={symbol}&amp;startTime={ts_24h_ago}&amp;limit=1000&quot;).json()
+
+start_id = r[-1]['a'] + 1
+
+df = pd.DataFrame(r)
+
+for i in tqdm(range(100)): # replace range with how many trades you want /1000
+    r = requests.get(f&quot;{binance_spot_base_url}{binance_spot_agg_trades}?symbol={symbol}&amp;fromId={start_id}&amp;limit=1000&quot;).json()
+    start_id = r[-1]['a'] + 1
+    df = pd.concat([df, pd.DataFrame(r)])
+
+    if len(r) &lt; 1000:
+        break
+
+df.columns = ['tradeId', 'px', 'qty', 'firstId', 'lastId', 'timestamp', 'buyerMaker', 'bestMatch']
+df.to_parquet('Data/Binance/Spot/BTCUSDT_trades.parquet', index=False)
+</code></pre>
+
+<p>More help here:</p>
+<p>https://binance-docs.github.io/apidocs/spot/en/</p>
+<p><strong>Bybit (Futures):</strong></p>
+<p>For a full history, we will need to access the archive on the website of Bybit. Binance has a similar service, but of course, the API is much easier and thus preferred where available:</p>
+<p><a href="images/2823e215527a.png"><img alt="" src="images/51d6bfb85b6a.png" /></a></p>
+<p>https://www.bybit.com/derivatives/en/history-data</p>
+<p>(get winRAR to open the GZ files, free and does the job - that or used the gzip library)</p>
+<p>(we could also get Spot data but there isn’t a lot of flow for Bybit Spot)</p>
+<h4></h4>
+<h4>Appendix - b) Background Reading</h4>
+<hr />
+<p>https://scholar.harvard.edu/files/schwartz/files/lecture8-fouriertransforms.pdf</p>
+<p>https://homepage.univie.ac.at/lukas.exl/files/NUFFT.pdf</p>
+<p>https://www.worldscientific.com/doi/abs/10.1142/S2382626617500058</p>
+<p><img alt="" src="images/8ff66707eb30.svg" /></p>
+<p>Trading Anonymity And Order Anticipation</p>
+<p>422KB ∙ PDF file</p>
+<p><a href="https://www.algos.org/api/v1/file/28224c41-24a3-46b2-bef1-b47e1c6357a2.pdf">Download</a></p>
+<p><a href="https://www.algos.org/api/v1/file/28224c41-24a3-46b2-bef1-b47e1c6357a2.pdf">Download</a></p>
+<p><img alt="" src="images/8ff66707eb30.svg" /></p>
+<p>Ssrn Id2828363</p>
+<p>2.98MB ∙ PDF file</p>
+<p><a href="https://www.algos.org/api/v1/file/35921ce7-9a63-4611-a570-045fbc757398.pdf">Download</a></p>
+<p><a href="https://www.algos.org/api/v1/file/35921ce7-9a63-4611-a570-045fbc757398.pdf">Download</a></p>
+</article>
+</body>
+</html>

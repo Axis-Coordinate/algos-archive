@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculating Implied Volatility... Fast</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Calculating Implied Volatility... Fast</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-05-08</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/calculating-implied-volatility-fast</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>How to calculate IV in a computationally effective manner.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<hr />
+<p>I wasn’t entirely sure this topic would be interesting to most readers—it sure wasn’t to me at first. Despite this, I still managed to encounter it in my work, and my bet is that you’ll probably find it useful, too. This is if you ever work with a large (they’re almost all massive so this is perhaps redundant) dataset of option prices and require IV values, which I think isn’t too unlikely for most researchers. The libraries available are great, but knowing how it works under the hood to fit your needs will save you a lot of sitting about waiting for calculations to finish.</p>
+<p>It is often overlooked that there is a lot of computational work that goes into efficiently calculating implied volatilities from option prices. If you are working with orderbook data, and performing research on the data - you will 100% encounter the issue of calculating Greeks and implied volatility being a compute bottleneck. Any large-scale data analysis using Greeks will require this, and if you need to accurately figure out how your risk has shifted after every market event, even the beefiest of trading systems will become clogged without fast calculations. </p>
+<p>Fast Greek calculations are not simply about being cutting edge on the latency front - they are often about being able to do certain data analysis tasks or have specific risk management update frequencies AT ALL.</p>
+<p>In this article, we will look at how to calculate this efficiently using Rust and Python. We will compare multiple methods and benchmark their performance across various option prices.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Newton</p>
+</li>
+<li>
+<p>Really Fast Newton???</p>
+</li>
+<li>
+<p>SR</p>
+</li>
+<li>
+<p>Low Accuracy</p>
+</li>
+<li>
+<p>Let’s Be Rational</p>
+</li>
+<li>
+<p>How does Optiver etc. do it</p>
+</li>
+</ol>
+<h4>Newton</h4>
+<hr />
+<p>The Newton-Raphson method is a root-finding algorithm that uses iterations to find successively better approximations to the roots (or zeroes) of a real-valued function. The formula for the Newton-Raphson method is:</p>
+<p>xn+1=xn−f(xn)f′(xn)</p>
+<p>Where:</p>
+<ul>
+<li>
+<p><em>x_n</em> ​ is the current guess,</p>
+</li>
+<li>
+<p><em>f</em>(<em>x_n</em> ​) is the function value at 𝑥_𝑛​,</p>
+</li>
+<li>
+<p>𝑓′(<em>x_n</em> ​) is the derivative of the function at 𝑥_𝑛​,</p>
+</li>
+<li>
+<p>𝑥_𝑛+1​ is the next guess.</p>
+</li>
+</ul>
+<p>When applied to finding the implied volatility, the function <em>f</em> becomes the difference between the market price of the option and the theoretical price of the option calculated using the Black-Scholes formula:</p>
+<p>f(σ)=CBS(σ)−Cmarket</p>
+<p>Here 𝜎 __ is the implied volatility, 𝐶_𝐵𝑆​ is the Black-Scholes price of the option, and 𝐶_𝑚𝑎𝑟𝑘𝑒𝑡 is the actual market price of the option. The derivative 𝑓′(𝜎) is the Vega of the option or the rate of change of the option price with respect to changes in volatility.</p>
+<p>Visually:</p>
+<p><a href="images/fe823bc6b92c.gif"><img alt="Newton-Raphson Method— Explained and Visualised | Towards Data Science" src="images/894debaf477b.gif" /></a></p>
+<p>Implementing a demonstration of this in Python:</p>
+<pre class="codehilite"><code>from scipy.optimize import newton
+import numpy as np
+import scipy.stats as si
+
+def bs_call(S, K, r, sigma, T):
+    &quot;&quot;&quot;Calculate Black-Scholes call option price.&quot;&quot;&quot;
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return S * si.norm.cdf(d1) - K * np.exp(-r * T) * si.norm.cdf(d2)
+
+def bs_put(S, K, r, sigma, T):
+    &quot;&quot;&quot;Calculate Black-Scholes put option price.&quot;&quot;&quot;
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return K * np.exp(-r * T) * si.norm.cdf(-d2) - S * si.norm.cdf(-d1)
+
+def bs_vega(S, K, r, sigma, T):
+    &quot;&quot;&quot;Calculate Vega of an option, which is the derivative of the price with respect to sigma.&quot;&quot;&quot;
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    return S * si.norm.pdf(d1) * np.sqrt(T)
+
+def nr_solve(option_type, price, S, K, r, T, initial_guess = 0.2):
+    &quot;&quot;&quot;Function to estimate the implied volatility for both call and put options using Newton-Raphson method.&quot;&quot;&quot;
+    if option_type == 'call':
+        price_fn = bs_call
+    elif option_type == 'put':
+        price_fn = bs_put
+    else:
+        raise ValueError(&quot;Invalid option type. Must be 'call' or 'put'.&quot;)
+
+    obj_fn = lambda sigma: price_fn(S, K, r, sigma, T) - price
+    dfn = lambda sigma: bs_vega(S, K, r, sigma, T)
+
+    try:
+        result = newton(func=obj_fn, x0=initial_guess, fprime=dfn, tol=1e-5, maxiter=100)
+        return result
+    except RuntimeError as e:
+        print(&quot;Failed to converge:&quot;, e)
+        return None
+</code></pre>
+
+<p>We get these performance results:</p>
+<p><a href="images/c4dfb4a04a3a.png"><img alt="" src="images/0060cd2f44f7.png" /></a></p>
+<p>It isn’t exactly the fastest, that’s for sure, but it’s very accurate. This is our first method, so don’t be too disappointed; we’ll get Newton up to standard in no time. We also wrote it in Python… let’s try some Rust instead.</p>
+<h4>Really Fast Newton</h4>
+<hr />
+<p>How can we make Newton faster? Well, we already got a speed boost from using Scipy, but we can further improve it by using Rust and nrfind::find_root. Something that might look a bit like this:</p>
+<pre class="codehilite"><code>pub fn call_iv_guess(
+    price: f64,
+    s: f64,
+    k: f64,
+    rate: f64,
+    maturity: f64,
+    initial_guess: f64,
+) -&gt; Result&lt;f64, f64&gt; {
+    let obj_fn = |sigma| call(s, k, rate, sigma, maturity) - price;
+    let dfn = |sigma| call_vega(s, k, rate, sigma, maturity);
+    let precision = 0.000001;
+    let iterations = 10000;
+    nrfind::find_root(&amp;obj_fn, &amp;dfn, initial_guess, precision, iterations)
+}
+</code></pre>
+
+<p>The next idea is to use a closed-form approximation for the initial guess:</p>
+<pre class="codehilite"><code>const SQRT_TWO_PI: f64 = 2.0 * SQRT_2 / FRAC_2_SQRT_PI;
+//Corrado and Miller (1996)
+fn approximate_vol(price: f64, s: f64, k: f64, rate: f64, maturity: f64) -&gt; f64 {
+    let discount = (-rate * maturity).exp();
+    let x = k * discount;
+    let coef = SQRT_TWO_PI / (s + x);
+    let helper_1 = s - x;
+    let c1 = price - helper_1 * 0.5;
+    let c2 = c1.powi(2);
+    let c3 = helper_1.powi(2) / PI;
+    let bridge_1 = c2 - c3;
+    let bridge_m = if bridge_1 &gt; 0.0 { bridge_1.sqrt() } else { 0.0 };
+    coef * (c1 + bridge_m) / maturity.sqrt()
+}
+</code></pre>
+
+<p>Both of these code snippets are actually from the <a href="https://docs.rs/black_scholes/latest/black_scholes/">black_scholes</a> library in Rust. The Corrado and Miller implementation is very fast:</p>
+<p><a href="images/f174d79ef0ea.png"><img alt="" src="images/688d8b8f408f.png" /></a></p>
+<p>But it’s not exactly the most accurate in existence. That said, when we look at using it as our initial guess and then using Newton from there, we get a very attractive picture:</p>
+<p><a href="images/60c51ac6ad07.png"><img alt="" src="images/017397b1f485.png" /></a></p>
+<h4>SR</h4>
+<hr />
+<p>In their paper “An Explicit Implied Volatility Formula”, Stefanica and Radoicic (SR) introduce a novel approach for rapidly computing implied volatilities to a high degree of accuracy. Their method leverages an approximation to the normal cumulative distribution function (CDF) known as the Polya approximation.</p>
+<p>The key insight is to replace the normal CDF terms in the Black-Scholes option pricing formula with the Polya approximation. This allows them to derive an explicit, closed-form approximate solution for the implied volatility. Unlike the true Black-Scholes implied volatility, which has no analytical solution and requires numerical methods, their approximation yields a direct formula to calculate implied volatility.</p>
+<p>The authors claim that their implied volatility approximation has a relative error uniformly bounded between -4.18% and 11.38% compared to the true Black-Scholes implied volatility, for options of any moneyness, maturity, and volatility level. The accuracy is even higher for options within typical trading ranges. For example, the absolute error is less than 10 percentage points for options with a total integrated volatility of less than 4.</p>
+<p>Additionally, they show their approximation provides a sharp lower bound for the true Black-Scholes implied volatility. This enables its use as an initial estimate in numerical root-finding methods to boost their speed and accuracy. An open-source C++ implementation using their approximation reportedly runs 2-3 times faster than previous state-of-the-art implied volatility solvers.</p>
+<p>I’ve coded up my own implementation in Python below:</p>
+<p><a href="images/ee847cfbff8c.png"><img alt="" src="images/09b11ba5f83b.png" /></a></p>
+<pre class="codehilite"><code>import math
+
+def polya_approx(x):
+    if x &gt;= 0:
+        return 0.5 + 0.5 * math.sqrt(1 - math.exp(-2 * x**2 / math.pi))
+    else:
+        return 0.5 - 0.5 * math.sqrt(1 - math.exp(-2 * x**2 / math.pi))
+
+def approx_implied_volatility(option_type, Cm, K, T, F, r):
+    y = math.log(F / K)
+
+    if option_type == 'call':
+        alpha_C = Cm / (K * math.exp(-r*T))
+        R = 2*alpha_C - math.exp(y) + 1
+    elif option_type == 'put':
+        alpha_P = Cm / (K * math.exp(-r*T))
+        R = 2*alpha_P + math.exp(y) - 1
+    else:
+        raise ValueError(&quot;Invalid option type. Must be 'call' or 'put'.&quot;)
+
+    A = (math.exp((1 - 2/math.pi)*y) - math.exp(-(1 - 2/math.pi)*y))**2
+
+    B_1 = (math.exp(2*y/math.pi) + math.exp(-2*y/math.pi))
+    B_2 = math.exp(-y)
+    B_3 = (math.exp((1 - 2/math.pi)*y) + math.exp(-(1 - 2/math.pi)*y))
+    B_4 = (math.exp(2*y) + 1 - R**2)    
+    B = 4 * B_1 - 2 * B_2 * B_3 * B_4
+
+    C = math.exp(-2*y) * (R**2 - (math.exp(y) - 1)**2) * ((math.exp(y) + 1)**2 - R**2)
+
+    beta = 2*C / (B + math.sqrt(B**2 + 4*A*C))
+    gamma = -(math.pi/2) * math.log(beta)
+
+    if y &gt;= 0:
+        C0 = K*math.exp(-r*T) * (math.exp(y)*polya_approx(math.sqrt(2*y)) - 0.5)
+        if Cm &lt;= C0:
+            vol = (math.sqrt(gamma + y) - math.sqrt(gamma - y)) / math.sqrt(T)
+        else:
+            vol = (math.sqrt(gamma + y) + math.sqrt(gamma - y)) / math.sqrt(T)
+    else:  # y &lt; 0
+        C0 = K*math.exp(-r*T) * (math.exp(y)/2 - polya_approx(-math.sqrt(-2*y)))
+        if Cm &lt;= C0:
+            vol = (-math.sqrt(gamma + y) + math.sqrt(gamma - y)) / math.sqrt(T)
+        else:
+            vol = (math.sqrt(gamma + y) + math.sqrt(gamma - y)) / math.sqrt(T)
+
+    return vol
+</code></pre>
+
+<p>This yields the below performance tests on my computer:</p>
+<p><a href="images/ffc234db50c3.png"><img alt="" src="images/1b92c344c33c.png" /></a></p>
+<p>Of course, this is Python, which is incredibly unoptimized code. Let’s try it in Rust instead.</p>
+<p><a href="images/3e98feb8f2a7.png"><img alt="" src="images/f62610dcc46d.png" /></a></p>
+<p>With code:</p>
+<p><a href="images/580e8f3e9f6c.png"><img alt="" src="images/b50096719078.png" /></a></p>
+<pre class="codehilite"><code>use std::time::Instant;
+use std::f64::consts::PI;
+
+enum OptionType {
+    Call,
+    Put,
+}
+
+fn polya_approx(x: f64) -&gt; f64 {
+    if x &gt;= 0.0 {
+        0.5 + 0.5 * (1.0 - (-2.0 * x.powi(2) / std::f64::consts::PI).exp()).sqrt()
+    } else {
+        0.5 - 0.5 * (1.0 - (-2.0 * x.powi(2) / std::f64::consts::PI).exp()).sqrt()
+    }
+}
+
+fn norm_cdf(x: f64) -&gt; f64 {
+    let sqrt2pi = 2.50662827463100050; // sqrt(2 * pi)
+    let p = 0.2316419;
+    let b1 = 0.319381530;
+    let b2 = -0.356563782;
+    let b3 = 1.781477937;
+    let b4 = -1.821255978;
+    let b5 = 1.330274429;
+
+    let t = 1.0 / (1.0 + p * x.abs());
+    let t2 = t * t;
+    let t3 = t2 * t;
+    let t4 = t3 * t;
+    let t5 = t4 * t;
+
+    let mut result = 1.0 - (1.0 / sqrt2pi) * (-x * x / 2.0).exp() * (b1 * t + b2 * t2 + b3 * t3 + b4 * t4 + b5 * t5);
+
+    if x &lt; 0.0 {
+        result = 1.0 - result;
+    }
+
+    result
+}
+
+fn approx_implied_volatility(option_type: OptionType, cm: f64, k: f64, t: f64, f: f64, r: f64) -&gt; f64 {
+    let f_k = f / k;
+    let y = f_k.ln();
+
+    let r = match option_type {
+        OptionType::Call =&gt; {
+            let alpha_c = cm / (k * (-r * t).exp());
+            2.0 * alpha_c - f_k + 1.0
+        }
+        OptionType::Put =&gt; {
+            let alpha_p = cm / (k * (-r * t).exp());
+            2.0 * alpha_p + f_k - 1.0
+        }
+    };
+
+    let a = ((1.0 - 2.0 / PI) * y).exp() - (-(1.0 - 2.0 / PI) * y).exp();
+    let a = a.powi(2);
+
+    let b_1 = (2.0 * y / PI).exp() + (-2.0 * y / PI).exp();
+    let b_2 = (-y).exp();
+    let b_3 = ((1.0 - 2.0 / PI) * y).exp() + (-(1.0 - 2.0 / PI) * y).exp();
+    let b_4 = (2.0 * y).exp() + 1.0 - r.powi(2);
+    let b = 4.0 * b_1 - 2.0 * b_2 * b_3 * b_4;
+
+    let c = (-2.0 * y).exp() * (r.powi(2) - (f_k - 1.0).powi(2)) * ((f_k + 1.0).powi(2) - r.powi(2));
+
+    let beta = 2.0 * c / (b + (b.powi(2) + 4.0 * a * c).sqrt());
+    let gamma = -(PI / 2.0) * beta.ln();
+
+    if y &gt;= 0.0 {
+        let c0 = k * (-r * t).exp() * (f_k * polya_approx((2.0 * y).sqrt()) - 0.5);
+        if cm &lt;= c0 {
+            ((gamma + y).sqrt() - (gamma - y).sqrt()) / t.sqrt()
+        } else {
+            ((gamma + y).sqrt() + (gamma - y).sqrt()) / t.sqrt()
+        }
+    } else {
+        let c0 = k * (-r * t).exp() * (y.exp() / 2.0 - polya_approx((-2.0 * y).sqrt()));
+        if cm &lt;= c0 {
+            (-(gamma + y).sqrt() + (gamma - y).sqrt()) / t.sqrt()
+        } else {
+            ((gamma + y).sqrt() + (gamma - y).sqrt()) / t.sqrt()
+        }
+    }
+}
+
+fn bs_call(s: f64, k: f64, t: f64, r: f64, q: f64, iv: f64) -&gt; f64 {
+    let d1: f64 = (((s / k).ln() + (r - q + 0.5 * iv.powi(2)) * t) / (iv * t.sqrt())).into();
+    let d2: f64 = d1 - iv * t.sqrt();
+    s * (-q * t).exp() * norm_cdf(d1) - k * (-r * t).exp() * norm_cdf(d2)
+}
+
+fn bs_put(s: f64, k: f64, t: f64, r: f64, q: f64, iv: f64) -&gt; f64 {
+    let d1: f64 = (((s / k).ln() + (r - q + 0.5 * iv.powi(2)) * t) / (iv * t.sqrt())).into();
+    let d2: f64 = d1 - iv * t.sqrt();
+    k * (-r * t).exp() * norm_cdf(-d2) - s * (-q * t).exp() * norm_cdf(-d1)
+}
+
+fn test_iv_calc_call(call_price: f64, s: f64, k: f64, t: f64, r: f64, q: f64) -&gt; f64 {
+    approx_implied_volatility(OptionType::Call, call_price, k, t, s * ((r - q) * t).exp(), r)
+}
+
+fn test_iv_calc_put(put_price: f64, s: f64, k: f64, t: f64, r: f64, q: f64) -&gt; f64 {
+    approx_implied_volatility(OptionType::Put, put_price, k, t, s * ((r - q) * t).exp(), r)
+}
+
+fn measure_performance(func: fn(f64, f64, f64, f64, f64, f64) -&gt; f64, px: f64, s: f64, k: f64, t: f64, r: f64, q: f64, number: usize) -&gt; (f64, f64) {
+    let mut times = Vec::with_capacity(number);
+    for _ in 0..number {
+        let start_time = Instant::now();
+        func(px, s, k, t, r, q);
+        let end_time = Instant::now();
+        times.push(end_time.duration_since(start_time).as_nanos() as f64);
+    }
+    let average_time = times.iter().sum::&lt;f64&gt;() / number as f64;
+    let std_deviation = (times.iter().map(|&amp;x| (x - average_time).powi(2)).sum::&lt;f64&gt;() / (number - 1) as f64).sqrt();
+    (average_time, std_deviation)
+}
+
+fn main() {
+    // Test parameters
+    let s = 100.0; // Spot price
+    let k = 100.0; // Strike price
+    let t = 1.0; // Time to maturity (in years)
+    let r = 0.05; // Risk-free rate
+    let q = 0.0; // Dividend yield
+
+    // Test implied volatilities
+    let ivs = [0.64, 0.32, 0.16, 0.08, 0.04];
+
+    println!(&quot;Testing approx_implied_volatility...&quot;);
+    println!(&quot;Spot: {}, Strike: {}, Maturity: {}, Risk-free rate: {}, Dividend yield: {}&quot;, s, k, t, r, q);
+    for &amp;iv in &amp;ivs {
+        println!();
+        let call_price = bs_call(s, k, t, r, q, iv);
+        let test_iv: f64 = test_iv_calc_call(call_price, s, k, t, r, q);
+        let (avg_time, jitter) = measure_performance(test_iv_calc_call, call_price, s, k, t, r, q, 1_000_000);
+        println!(&quot;Call | True IV: {:7.2}% | IV: {:7.2}% | Avg. Time (ns): {:.2} | Jitter (ns SD): {:.2}&quot;, iv * 100.0, test_iv * 100.0, avg_time, jitter);
+        let put_price = bs_put(s, k, t, r, q, iv);
+        let test_iv = test_iv_calc_put(put_price, s, k, t, r, q);
+        let (avg_time, jitter) = measure_performance(test_iv_calc_put, put_price, s, k, t, r, q, 1_000_000);
+        println!(&quot;Put  | True IV: {:7.2}% | IV: {:7.2}% | Avg. Time (ns): {:.2} | Jitter (ns SD): {:.2}&quot;, iv * 100.0, test_iv * 100.0, avg_time, jitter);
+    }
+}
+</code></pre>
+
+<p>Combining this with our Newton approach as our initial guess, we get these results:</p>
+<p><a href="images/08e5610323ae.png"><img alt="" src="images/15678466147c.png" /></a></p>
+<p>It is pretty clear that there is no point in making the initial guess super accurate at the cost of additional compute</p>
+<h4>Low Accuracy</h4>
+<hr />
+<p>What if we don’t need high accuracy? Surely it’s best to just use SR? What about Corrado and Miller? Well, you’ve got to think about the tails, and that’s really where it gets you. </p>
+<p>The closed-form approximations lose accuracy MASSIVELY when you start looking at 0DTEs and are really nasty to price options. SR handled the 4% IV case quite well, but it still will be a nightmare when prices start violating traditional bounds. </p>
+<p>Using Newton brings additional challenges because when you have extreme values, the algorithm will take up to 20x as long to get an answer. If the market is super volatile, like in crypto or certain commodity options markets, then your average calculation will be a 20x’er… </p>
+<p>Coming back to the case where we only need 1 digit or so of accuracy, nothing more than that (i.e. the real-world case we encounter most of the time), the best way to achieve both speed for extreme cases and ensure that accuracy remains within our allowance is actually to modify the black_scholes library in Rust to limit the number of iterations.</p>
+<p>It gets close enough without spending 100s of extra iterations (instead of 10 in the first place) to try gain you a few additional decimals of precision. </p>
+<h4>Let’s Be Rational</h4>
+<hr />
+<p>Jäckel's paper “<a href="http://www.jaeckel.org/LetsBeRational.pdf">Let’s be Rational</a>” takes a different approach. One that has been used by larger firms for a while. </p>
+<p>The approach builds upon previous work by himself and a handful of others, while introducing quite a few novel techniques to improve both speed and precision.</p>
+<p>A key element of Jäckel's method is the definition of a robust initial guess function for the implied volatility. This function is split into four segments, each using rational approximations to capture the behavior of the implied volatility across different price regimes. Notably, two of these segments employ non-linear transformations to ensure the correct asymptotic behavior of the initial guess in the extreme cases of very low and very high prices. By carefully constructing this initial guess function, Jäckel ensures that the subsequent root-finding procedure converges rapidly to the true implied volatility.</p>
+<p>Another crucial component of the approach is the specification of a three-branch objective function. This function measures the difference between the given market price and the price computed using the Black formula at a given volatility level. Jäckel applies different transformations to this price difference depending on the price regime, which helps to improve the convergence properties of the root-finding algorithm. Specifically, he uses the reciprocal of the logarithm of the price for low prices, the price difference itself for intermediate prices, and the logarithm of the distance from the maximum possible price for high prices.</p>
+<p>To find the root of the objective function (i.e., the implied volatility), Jäckel employs two iterations of a fourth-order root-finding method called Householder’s. This method is a generalization of the well-known Newton-Raphson and Halley's methods, offering rapid convergence to the true solution. By using a higher-order method and a carefully constructed initial guess, Jäckel is able to achieve maximum machine precision in the computed implied volatility with just two iterations across all possible input scenarios.</p>
+<p>Finally, a critical aspect of Jäckel's approach is implementing a refined version of the Black formula itself. He notes that the standard implementation of this formula can suffer from significant roundoff errors and numerical inaccuracies, particularly in certain parameter regimes (e.g., very low or high volatilities, or options near expiry). To mitigate these issues, Jäckel introduces several modifications to the Black formula implementation, such as using a Taylor series expansion for small volatilities and employing the "scaled complementary error function" for large volatilities. These refinements ensure that the Black formula is evaluated accurately across all relevant parameter ranges, which is essential for the overall accuracy of the implied volatility computation.</p>
+<p>C++ code is available publicly online, and I have implemented my own version of this code in Rust. That said, it’s a bit too large of a codebase to share here, but you can still easily try it out using the py_vollib_vectorized library, which uses this behind the scenes to achieve incredibly fast speeds. </p>
+<p>In my own tests (using real trading data, but performed maybe 6 or 7 months ago), it came out to be about 2x as slow as a hyper-optimized Newton but with incredibly consistent performance. It depends on what you care about in the end. Average speed was the main goal in that case, so Newton won out, and the code has been a bit dusty since.</p>
+<h4>How does Optiver etc. do it</h4>
+<hr />
+<p>How do the pros do it? Well, they usually just pre-compute all the possible values, perhaps with some smoothing or resampling, and then use those in production. These obviously require much computing to produce and use, but are the lowest latency way to for live trading. </p>
+<p>You simply compute the range of prices you expect to see and what this means for the Greeks. Then, when the event occurs, you already have the numbers on hand.</p>
+<p>However, how do they calculate the pre-computed values? Optimized Newton is most common, but the initial guesses may vary between firms and the optimizations they have in place there.</p>
+<p>Pre-computation does not just extend to trying to be the fastest on the latency front; it also applies to working with big data, where you are more concerned about the total time to compute a lot of implied volatilities. Similar to Jackel, but with a heavier focus on brute forcing it, they pre-compute a grid of possible values and then either save those or try to find a function to match it. </p>
+<p>I’ve always found optimized Newton sufficient, and I didn’t have the requirements to necessitate this approach, but it’s a very open secret in the industry that pre-computing is how the larger shops take to it. </p>
+<p>With all this said, this is how the larger firms do it in production. It doesn’t mean that every options researcher is doing it this way. It’s a hell of a lot of effort to produce these pre-computed values, and most won’t have access. In fact, most will find the available libraries sufficient (they usually use the best approach in the first case anyway). If they do it themselves, I’d expect Newton + initial guess + tuning the precision (same as most would). If they aren’t, expect “Let’s Be Rational” (if using py_vollib), pre-computing / whatever their firm’s internal tooling is if they’ve got proprietary tooling available, and Newton if using Rust (and good chance in C++ / a few other languages’ popular libraries as well)</p>
+</article>
+</body>
+</html>

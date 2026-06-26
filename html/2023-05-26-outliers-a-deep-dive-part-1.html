@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outliers - A Deep Dive (PART 1)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Outliers - A Deep Dive (PART 1)</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-05-26</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/outliers-a-deep-dive-part-1</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Dealing with extreme values as a quantitative researcher.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/f8ebae904143.png"><img alt="" src="images/6d56ff88c217.png" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>There’s a lot of talk about outlier detection and removal, so today we’ll cover everything related to the subject to try to give a clearer picture. Outliers are a common problem every quant faces, but they also present an opportunity to find alpha. When greed and panic take over, the market becomes far more predictable. Outlier events are often when we get to take advantage of this. We explore how to use outlier events and prevent them from damaging your model.</p>
+<p>The first half of this article series (PART 1) looks at outliers as our enemy and how we can deal with them. The other half (PART 2) focuses on how to model extreme values so we aren’t discarding some of the most information-dense data points.</p>
+<p>It is my view that extreme events are best researched on their own. We thus want to reduce their extreme nature or even remove them when analyzing the complete data. Still, these data points aren’t simply thrown away - they are modeled separately. They often behave in ways entirely opposed to the usual data, requiring special treatment.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h4>Index</h4>
+<hr />
+<h5>Part 1:</h5>
+<ol>
+<li>
+<p>Outlier Detection</p>
+<ol>
+<li>
+<p>Plotting data</p>
+</li>
+<li>
+<p>Quantile Regression</p>
+</li>
+<li>
+<p>IQR</p>
+</li>
+<li>
+<p>Z-Score Quantiles</p>
+</li>
+<li>
+<p>Clustering Approaches</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Transforming Data </p>
+<ol>
+<li>
+<p>Winsorising</p>
+</li>
+<li>
+<p>Log Transforms</p>
+</li>
+<li>
+<p>Min/Max Scaling</p>
+</li>
+<li>
+<p>Median Absolute Deviation</p>
+</li>
+<li>
+<p>Non-Linear Scaling</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Robust Modelling Approaches</p>
+<ol>
+<li>
+<p>Ridge</p>
+</li>
+<li>
+<p>LASSO</p>
+</li>
+<li>
+<p>PLS</p>
+</li>
+<li>
+<p>MAD</p>
+</li>
+<li>
+<p>The L0, L1, &amp; L2 norm. </p>
+</li>
+</ol>
+</li>
+</ol>
+<h5>Part 2 (In the next article) :</h5>
+<ol>
+<li>
+<p>General Thoughts </p>
+</li>
+<li>
+<p>Feature Engineering</p>
+<ol>
+<li>
+<p>Min/Max </p>
+</li>
+<li>
+<p>Quantiles</p>
+</li>
+<li>
+<p>Volume</p>
+</li>
+<li>
+<p>Volatility</p>
+</li>
+<li>
+<p>Return Discreteness</p>
+</li>
+</ol>
+</li>
+</ol>
+<h4>Outlier Detection</h4>
+<hr />
+<p>We will want to know the extent to which outliers exist in our dataset; detection is the first step. A lot of this is intuition, as we don’t just need to detect outliers. This is financial data - you can expect to find outliers; the real question is to what degree do they exist. Do they behave differently? Does this alpha have a sweet spot between too extreme and not extreme enough to beat fees? </p>
+<p>_<strong>Plotting Data</strong> _is one of the simplest ways to do this. sns.regplot() should show us how extreme our outliers are. We can tell simply from where most of the data points sit relative to the size of the axis. Look at the most extreme values; do they cluster? Are there just one / a couple of significant outliers or many (relative to dataset size)? Quickly eyeballing it with some plots is an excellent way to start building an idea of how these outliers will behave. </p>
+<p><em><strong>Quantile Regressions</strong></em> can be used to see if the relationship between our feature and our outlier returns is consistent compared to the rest of the data. If the relationship is the same, we should focus on the outliers, not remove them. We want the most extreme values because they will create the highest EV - but of course, only in this scenario where the relationship is consistent. </p>
+<p><em><strong>IQR</strong></em> is probably one of the best-known techniques. It is high school-level statistics. I figured it deserved a mention, but it isn’t something I’ve found much use from.</p>
+<p><em><strong>Z-Score Quantiles</strong></em> are another excellent way to go about it. We first apply a z-score transform and then print out the percentiles. If your 99.9% has a very high z-score, we know there are some outliers. This lets us get a clearer picture of how extreme our values are and how many outliers exist. If there are quite a few extreme samples, they’re more likely to affect our model, but it also means we have a much better chance of finding alpha in the extremes. One sample is insufficient to make an alpha; having a few samples gives us some room to work.</p>
+<p><em><strong>Clustering Approaches</strong></em> like <em><strong>DBSCAN</strong></em> are another way to find outliers. This is less useful for detection / exploratory inference, for which the rest of these techniques are suited. We’ll come back to this in the second part, as this is best used to find alphas, not necessarily to understand your data and its outliers. </p>
+<h4>Transforming Data</h4>
+<hr />
+<p>Now that we’ve covered some general ways to gain inference into how many outliers your data has and what form they take, we can move on to how to deal with them. These are transforms that can be used to reduce the extreme nature of our outliers. </p>
+<p><em><strong>Winsorising</strong></em> is probably my go-to approach for this. We cap data points that have more than a certain absolute z-score or alternatively remove them entirely. I prefer to cap the values, but you can experiment with different forms.</p>
+<p><em><strong>Log Transforms</strong></em> are the second most popular way to deal with non-normal distributions. This is more appropriate for some things than others, so it can be a bit hit or miss. Understanding the mathematics behind this transform is a good idea so you can apply it when it is most appropriate. You risk throwing away information, especially for making data stationary, fractional differencing can make sense instead.</p>
+<p><em><strong>Min/Max</strong></em> normalization is the complete opposite of the previous two. This actually highlights outliers and gives them more weight. It’s a valuable normalization because all values fall within a 0-1 range. You subtract the minimum, then divide by maximum - minimum. Thus, your min has a value of 0, and your max has a value of 1. This is usually appropriate when there is a clear reason (such as forced hedging) where the magnitude should have a linear relationship with EV. </p>
+<p><em><strong>Median Absolute Deviation</strong></em> normalization is a technique I really like; I find that it is best paired with Winsorising the data. We subtract the median and then divide it by the median absolute deviation. </p>
+<p><em><strong>Non-Linear Scaling</strong></em> is more of an idea I’ve tested out, I don’t think it’s very established in the literature, but the idea is that you have a threshold where you aggressively start scaling down the values. For example, past 3SD, we use a log transform. This would have the formula: (3 + log(SD - 2)), but it is really something you tune manually. It is a less aggressive method than Winsorising and similarly preserves most of the data.</p>
+<h4>Robust Modelling Approaches</h4>
+<hr />
+<p>I’ll cover some popular models here, but there is much more to this subject than I’ll go into. It’s worth understanding how shrinkage works at a very intuitive level to make use of these regression techniques best. </p>
+<p><em><strong>Ridge</strong></em> regressions are fantastic and are usually my default choice. Regularizing your features is very valuable, but I prefer Ridge over LASSO simply because if a feature is in my model, it should have some non-zero weight. If it needs to be excluded that is usually a piece of research that happens before it goes into the model. </p>
+<p><em><strong>LASSO</strong></em> regressions are also quite good, and my view that no features should be excluded is not always something others will agree with, so I’m sure there are many viewpoints. Still, I find it more efficient to research each feature and not include weak features in the first place. There are certain scenarios where I find LASSO useful, however, and that is usually when I feel that a specific feature or group thereof that only apply to certain assets. So in this case where I train the regression on each asset individually then this may be the tool of choice.</p>
+<p><em><strong>PLS (Partial Least Squares)</strong></em> is something I tend to go for when researching longer-term alphas, into the factor modelling literature. This or Ridge. It is excellent at dealing with multi-collinearity which is a big problem when you have lots of similar factors (many of which will be linear combinations of others if you just use them out the box - i.e. factor zoo).</p>
+<p><em><strong>MAD (Mean Absolute Deviation)</strong></em> regressions are robust to outliers, but they aren’t always easy to fit and may have multiple solutions. To solve this I just increase the norm until it eventually fits properly, even if that is at L2. </p>
+<p>The idea of norms is essential to a lot of this. I like building a custom optimization engine that lets me pick the norm and tune it to the level of outliers I see in the data. When you use an OLS regression, the error is squared then the average is square-rooted. This means that outliers actually get more weight - not less. MAD will weight them equally, but we can actually penalize for outliers by decreasing the norm. L0 is of course impossible, but we can use the square root of absolute error as a way to add a penalty for large values. Results tend to be far more robust out of sample when using the L1 norm. These ideas can be applied to PCA as well with RPCA (Robust Principal Component Analysis).</p>
+<h4>Conclusion</h4>
+<hr />
+<p>We’ve covered a lot in this article so I’ll leave part 2 for the next article, but hopefully, this gives some guidance on what to look at when working with outliers in your data.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+</article>
+</body>
+</html>

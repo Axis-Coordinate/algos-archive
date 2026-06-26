@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Starting your Quant trading Business</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Starting your Quant trading Business</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-02-18</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/starting-your-quant-trading-business</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Overview of the necessary components any quant trader needs.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/d5e9945cb374.jpeg"><img alt="" src="images/b88b9e895a5e.jpeg" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>Are you serious about quant trading? This is a high level overview of how the architecture of a professional trading desk looks like and it’s what you will need if you want to make a business out of your quant trading skills. And I really mean “need”, if you already have something built, I guarantee you may not need it now but you will in the future.</p>
+<p>Lets start with this diagram:</p>
+<p><a href="images/dd621c1ae66c.png"><img alt="quantitative trading system architecture" src="images/9066825817ff.png" /></a>Quantitative trading system architecture</p>
+<p>As you can see there are a lot of parts, all of them are connected to a message broker in the centre, which is the main avenue of communication between each component. </p>
+<p>It may look a bit confusing so let’s remove the Broker component from the centre and focus on how the information “generally” flows, data coming in → data coming out. The diagram would look like the following:</p>
+<p><a href="images/2a9ea0009a9d.png"><img alt="" src="images/be9f78b478de.png" /></a>Data-flow diagram</p>
+<p>If you have subscribed, feel free to subscribe to both of our newsletters:</p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h3>→ <a href="https://substack.com/@ninjaquant">Ninja Quant Substack Link</a> ←</h3>
+<h4>Data providers</h4>
+<hr />
+<p>The raw data is generated on each data provider, exchange or service. This can be alternative, quotes, depth, trades, weather data. Whatever data our strategy needs. This data however is raw, we can ingest it but we can’t use it to trade, we would have to normalise it. </p>
+<p>Here’s a prior article on data sourcing available to everyone:</p>
+<h4>Gateway in</h4>
+<hr />
+<p>Takes care of the normalisation part. It doesn’t matter how the raw data looks, as soon as it enters our system it will get transformed into a format that is understandable by all other components.</p>
+<p>This way we can use any kind of data from any kind of source, it doesn’t really matter where it comes from as soon as it touches our system, they all share the same format.</p>
+<h4>Processing</h4>
+<hr />
+<p>Data is normalised but it’s most likely not going to be ready for our strategy, especially if its order book data. This kind of data is streamed very frequently and it’s important that our strategy is capable of ingesting this data and generate trading signals faster than the time elapsed in between messages. So let’s say our strategy takes 100ms to produce a signal, if the data ingested comes in every 50ms, there’s going to be a clog and our strategy won’t be able to keep up with that throughput of data.</p>
+<p>But you most likely won’t need to process every single order book update in order to produce a trading signal. The way it’s done is by adding some logic that will process the data and filter it so your strategy only receives the data needed. A widely used case would be your strategy only needing best bid and ask data, or top 5-10 levels of the order book, however this data is generated from your processing module that ingests level2 data.</p>
+<p>This part is one of the most important ones, it’s what you use to generate trades. Make sure you test every single line of code of this module, accounting for all edge cases. It will save you money and time in the future.</p>
+<h4>Strategy</h4>
+<hr />
+<p>This is the most creative part of the system. All there is to say on this post is it ingests just the normalized-processed data it needs, updates the forecast or view, and sends orders to express or capture that updated view.</p>
+<p>It also usually has a risk-manager component that has notion of account equity, positions and other metrics that are not a part of the strategy per se, but can influence how it’s traded.</p>
+<h4>Order Manager</h4>
+<hr />
+<p>May sound as simple as just creating an order and sending it but it’s not. What to do if an order couldn’t get executed, amended or canceled? Should probably share this information with the strategy, right?</p>
+<p>Some people like to integrate the execution strategy here, others in the <strong>Strategy</strong> component. The execution strategy slices an order into smaller ones to optimise its execution or reduce the market impact.</p>
+<h4>Gateway out</h4>
+<hr />
+<p>De-normalises the orders into an exchange-specific format for its execution. The implementation of this component and <strong>Gateway in</strong> will normally lie in the same directory, its just a simple API implementation, but called from different parts in our code.</p>
+<p>Whilst it has many imperfections and most people will implement their own clients, CCXT is a good example of how data is normalized and de-normalized for digital asset exchanges. It’s at least a first example to learn from and gather ideas.</p>
+<h4>Message Broker</h4>
+<hr />
+<p>Just a message broker. The goal of this component it to share information in the most efficient manner between components. So all data is available to any component that is subscribed to the Broker. </p>
+<p>Note that the Broker architecture is not needed, just handy. You could perfectly share data without the Broker but the diagram would look a bit more messy. The other scenario would be to have independent message queues between each component. I prefer a centralised and isolated component, easier to maintain and scale.</p>
+<h4>DB</h4>
+<hr />
+<p>Simply a database, to store trading data for analytics and reporting purposes mainly. It’s normally not a good idea to plug in a database in the middle of our strategy, try to use cache as much as you can.</p>
+<p>DynamoDB is a great option for systems in AWS. Make sure writing to your database does not block your trading algorithm (can be solved async with aioboto3 in Python). </p>
+<p>Many other ways to do it exist and none is strictly better than another - just do what works best. It’s not like the database makes you money after all - although remembering to log and trace everything certainly makes you money in the long run through an improved ability to solve complex debugging tasks.</p>
+<h4>GUI &amp; Monitoring</h4>
+<hr />
+<p>To monitor key metrics, set alarms, handle parameters for our strategy, restart strategy, cancel all orders, list goes on. Ideally you would be able to monitor and manage your strategy without modifying the code each time.</p>
+<p>There are two main sides of why you need a GUI (or otherwise an interface to interact with and monitor your algorithm sufficiently). The first is for analysis of your performance and the other is for live monitoring + control of the algorithm itself. </p>
+<p>Before going too deep into this part, I want to warn all beginners to approach this component on an as needed basis strictly. It’s a shame to see so many junior quants with dashboards that clearly got more of their time than the algorithm itself. The dashboard is for the algorithm - NOT the other way around! Remember that and although it may be tempting, don’t go down the rabbit hole or pretty UIs.</p>
+<p>Grafana is in (quant_arb) my view the hands down best solution for historical metrics and viewing PnL performance although you can also easily emit metrics to an AWS CloudWatch dashboard for similar results. </p>
+<p>For the control and live monitoring though you’ll probably need to build it yourself in which case React is great for this with a Django or Flask backend as my personal choices.</p>
+<p>Monitoring can again be done through these systems but the best solution until your algorithm is in a mature stage where all the work is on fine tuning it and not adding new components (what a dashboard is very useful for and the right time to start developing one) is Telegram. It’s absurdly easy to send a message update in a channel or a photo (can convert positions data frame to a photo and send that). This is the solution everyone should use before they build anything fancy. </p>
+<h4>Conclusion</h4>
+<hr />
+<p>Arguably one the most important metrics for your trading system is the <strong>tick-to-trade</strong>. It’s the time your system takes to process the data from <strong>Gateway in</strong> to <strong>Gateway out</strong>. It’s just a benchmark that will help you establish conversations at a bar with other quant traders. The lower the number is the more cool you will look.</p>
+<p>Jokes aside, it’s helpful as a high level benchmark when you’re optimising your system. But in practice you will be measuring times for each critical component: </p>
+<ul>
+<li>
+<p>How much time does it take for the raw data from Exchange A to come to my system?</p>
+</li>
+<li>
+<p>How much time to process/normalise it?</p>
+</li>
+<li>
+<p>How much time to run the strategy component?</p>
+</li>
+<li>
+<p>How much time to share messages from Component A to component B?</p>
+</li>
+<li>
+<p>How much time, how much time, how much time…</p>
+</li>
+</ul>
+<p>Knowing these metrics will help you tune some parts of your system for better performance. Generally, the faster you ingest and process data, and send orders than other traders, the more edge you will gain. Many strategies are very correlated, imagine two traders trading the same or a similar strategy, the winner will be the fastest one to execute, the slower one will pick up just the leftovers.</p>
+<p>So are you serious about quant trading? This is what you need. Of course this post is a just a high level overview but you get the idea. If any of these components is missing in your system I guarantee you will need it in the future, the more attention to detail the better. </p>
+<p>Feel free to reach out to any of us <a href="https://twitter.com/quant_arb">@quantarb</a> or <a href="https://twitter.com/ninjaquant_">@ninjaquant_</a> for any constructive feedback! Mention which components you would like to learn more about and we will make it a priority to do a deep dive for upcoming posts.</p>
+</article>
+</body>
+</html>

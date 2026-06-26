@@ -1,0 +1,2820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Options Market Making Quoter (OMM Pt.3)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Live Options Market Making Quoter (OMM Pt.3)</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2025-05-21</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/live-options-market-making-quoter</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Building a real-time volatility curve pricing model</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Introduction</h3>
+<hr />
+<p><em>Note: The full Rust implementation of the quoter can be found in the appendix</em></p>
+<p>So we’ve looked a lot at theoretical volatility curves, but this hasn’t yet been translated into something we can derive quotes from in real time. So today, we will write out a full pricing server. The server will spit out our delta neutral quotes. This is the first half of building a proper options market making system. It’s by far the easier part in terms of developer work, but does involve a lot of research and code still.</p>
+<p>My model for developing HFT systems has always been that you have your pricing server and your trader server. Sometimes the pricing server is simply there to stream data and doesn’t do anything other than that, but often you use it to calculate fair values or in the case of taker strategies, different opportunities. Today, we will be building the first half of that - building a full options market maker is a very large lift and probably unrealistic for a single article. That said, this will still be a fairly large amount of code and a longer article as a result. Our system prices options and comes up with it’s own fair values without simply copying the market. If spot prices change, we have our own new option prices before the market updates. If a trade happens, we can price it into our curve as well. Probably nowhere near as good as other MMs, but that can be tuned in production.</p>
+<p>We will assume that we have an empty portfolio for our quotes so there will be no skewing involved, but in a real system we would skew our quotes based on various risk factors (Greeks, notional limits, etc).</p>
+<p>The hardest part of building an options market making system is the portfolio management, OEMS, risk management, reporting, controllers, data robustness handlers. There’s a world of difference between spitting out quotes in a system that doesn't have any sort of complex data quality checking logic + connection assurances + low latency optimizations for the data feeds, and what we will be doing. That said, the code below is by no means trivial and will involve us putting together components from all the prior articles as well as including many new additions.</p>
+<p>Here is what some of the quotes look like when running live. You can see some of the fit parameters to the model, and then also the log-moneyness vs. the implied volatility for each of the strikes on the expiry:</p>
+<p><a href="images/3997430629a0.png"><img alt="" src="images/eae1522e9782.png" /></a></p>
+<p>If we were to plot the values it would look similar to the curve we fit in the previous article on option market making:</p>
+<p><a href="images/4566d098f0dd.png"><img alt="" src="images/44e3c1cc29ce.png" /></a></p>
+<p>The only difference is that this is being done extremely fast and live. We use the same Python code under the hood as this uses SciPy’s minimize which is made of super fast FORTRAN anyways so the optimization time is still fairly acceptable. We also don’t need to fit too aggressively.</p>
+<h3>Further Work</h3>
+<hr />
+<p>As I mentioned earlier, this is not a full option market maker — merely the quoting component, we would need to implement execution to bring it live.</p>
+<p>It also likely makes sense to incorporate VCR, SCR, SSR, etc into the model by using spot price updates to modify the curve in-between fits. I’ll show you how to do that live in the next article. The current implementation has the functions to do it implemented, but the spot feed has not been fit to yet. </p>
+<p>From here, we would add on our skews our view on where the curve is going based on various fits and skews for different Greek preferences and we would have a half decent start at being an options market maker.</p>
+<p>Now that we have this live code, I will use this as a platform in the next articles to show how this will be done in a live environment. I’ll also put down a quick dashboard so we can visualize it. </p>
+<p>If you want to have a toy with it, the code is below.</p>
+<h3>Appendix</h3>
+<hr />
+<p>Here is the code for the quoter, to start here is the file directory overview:</p>
+<pre class="codehilite"><code>options_pricing
+├── python
+│   └── wing_model.py
+└── src
+    ├── exchanges
+    │   ├── deribit.rs
+    │   └── mod.rs
+    ├── volatility
+    │   └── wing.rs
+    ├── main.rs
+    ├── model.rs
+    ├── py_utils.rs
+    ├── quoter.rs
+    ├── ticker_universe.rs
+    └── wing_model.rs
+Cargo.toml
+.gitignore
+</code></pre>
+
+<p>It should look like this when it connects to the exchanges:</p>
+<p><a href="images/2039e44a1b76.png"><img alt="" src="images/f4db7c28cdd7.png" /></a></p>
+<p>And here are the fitted surfaces which happen live:</p>
+<p><a href="images/b8cc3db2affe.png"><img alt="" src="images/a090e4a0e9fb.png" /></a></p>
+<p>main.rs:</p>
+<pre class="codehilite"><code>// Optional: Remove this, only so it doesn't crowd my terminal.
+#![allow(unused_variables, unreachable_code, unused_imports, deprecated, dead_code, unused_mut)]
+
+pub mod ticker_universe;
+pub mod model;
+pub mod quoter;
+pub mod exchanges;
+
+pub mod py_utils;
+pub mod wing_model;
+pub mod volatility {
+    pub mod wing;
+}
+
+pub use exchanges::{
+    ExchangeClient,
+    DeribitClient,
+};
+
+use color_eyre::eyre::Error;
+use model::Exchange;
+use quoter::Quoter;
+use ticker_universe::TickerUniverse;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Error&gt; {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
+    let client: DeribitClient = DeribitClient::connect_mainnet().await?;
+    let instruments = client.get_instruments(None, &quot;option&quot;, Some(true), None).await?; 
+    let universe = TickerUniverse::new(instruments, Exchange::Deribit);
+    let mut quoter = Quoter::new(Exchange::Deribit, universe, client);
+    quoter.start_quoting().await.expect(&quot;Error&quot;);
+    loop {};
+    Ok(())
+}
+</code></pre>
+
+<p>model.rs:</p>
+<pre class="codehilite"><code>use std::fmt;
+use color_eyre::eyre::{eyre, Error, Result};
+use chrono::{NaiveDate, NaiveDateTime, Duration};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use indexmap::IndexMap;
+use tracing::{info, error};
+use std::collections::HashSet;
+
+use serde::{
+    de::{self, SeqAccess, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
+use serde_json::Value;
+
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct ChannelEvent&lt;T&gt; {
+    pub channel: String,
+    pub data: T,
+}
+
+impl&lt;T&gt; ChannelEvent&lt;T&gt; {
+    pub fn map&lt;U&gt;(self, f: impl FnOnce(T) -&gt; U) -&gt; ChannelEvent&lt;U&gt; {
+        ChannelEvent {
+            channel: self.channel,
+            data: f(self.data),
+        }
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Books {
+    books: IndexMap&lt;(String, &amp;'static str), Book&gt;,
+}
+
+impl Books {    
+    pub fn handle(&amp;mut self, book: Book) {
+        match self
+            .books
+            .entry((book.instrument_name.clone(), book.exchange))
+        {
+            indexmap::map::Entry::Occupied(mut entry) =&gt; {
+                let old_book = entry.get_mut();
+                if old_book.timestamp &gt;= book.timestamp {
+                    return;
+                }
+                *old_book = book;
+            }
+            indexmap::map::Entry::Vacant(entry) =&gt; {
+                entry.insert(book);
+            }
+        }
+    }
+    pub fn get(&amp;self, raw_ticker: String, exchange: &amp;'static str) -&gt; Option&lt;&amp;Book&gt; {
+        self.books.get(&amp;(raw_ticker, exchange))
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Tickers {
+    pub tickers: IndexMap&lt;(String, &amp;'static str), Ticker&gt;,
+}
+
+impl Tickers {
+    pub fn get(&amp;self, raw_ticker: String, exchange: &amp;'static str) -&gt; Option&lt;&amp;Ticker&gt; {
+        self.tickers.get(&amp;(raw_ticker, exchange))
+    }
+    pub fn handle(&amp;mut self, ticker: Ticker) {
+        match self
+            .tickers
+            .entry((ticker.instrument_name.clone(), ticker.exchange))
+        {
+            indexmap::map::Entry::Occupied(mut entry) =&gt; {
+                entry.insert(ticker);
+            }
+            indexmap::map::Entry::Vacant(entry) =&gt; {
+                entry.insert(ticker);
+            }
+        }
+    }
+
+    pub fn get_coverage(&amp;self, instruments: Vec&lt;Instrument&gt;, exchange: &amp;'static str) -&gt; f64 {
+        if instruments.is_empty() {
+            error!(&quot;Empty instruments&quot;);
+            return 0.0;
+        }
+
+        let mut unique = HashSet::&lt;String&gt;::with_capacity(instruments.len());
+        let mut covered = 0usize;
+
+        for inst in instruments {
+            let name = inst.instrument_name;
+            if !unique.insert(name.clone()) {
+                continue;
+            }
+            if self.tickers.contains_key(&amp;(name, exchange)) {
+                covered += 1;
+            }
+        }
+
+        covered as f64 / unique.len() as f64
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TickerMessageEvent {
+    pub instrument_name: String,
+    pub exchange: String,
+    pub bid_iv: Option&lt;f64&gt;,
+    pub ask_iv: Option&lt;f64&gt;,
+    pub mark_iv: Option&lt;f64&gt;,
+    pub mark_px: Option&lt;f64&gt;,
+    pub delta: Option&lt;f64&gt;,
+    pub vega: Option&lt;f64&gt;,
+    pub volume: Option&lt;f64&gt;,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TickerMessage {
+    pub msg_type: String,
+    pub ticker: TickerMessageEvent,
+}
+
+pub struct EventConsumer {
+    pub books: UnboundedReceiver&lt;Book&gt;,
+    pub tickers: UnboundedReceiver&lt;Ticker&gt;
+}
+
+pub enum DataChangeEvent {
+    BookChange(BookChangeEvent),
+    TickerChange(TickerChangeEvent),
+}
+
+#[derive(Debug, Clone)]
+pub struct BookChangeEvent {
+    pub instrument_name: String,
+    pub exchange: &amp;'static str,
+}
+
+#[derive(Debug, Clone)]
+pub struct TickerChangeEvent {
+    pub instrument_name: String,
+    pub exchange: &amp;'static str,
+}
+
+pub struct InstrumentUpdateCommand {
+    pub update: InstrumentUpdate,
+    pub channel: Option&lt;String&gt;,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InstrumentUpdate {
+    pub timestamp: i64,
+    pub state: String,
+    pub instrument_name: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum OptionType {
+    Put,
+    Call,
+}
+
+impl std::str::FromStr for OptionType {
+    type Err = Error;
+    fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt; {
+        match s.to_uppercase().as_str() {
+            &quot;P&quot; =&gt; Ok(OptionType::Put),
+            &quot;PUT&quot; =&gt; Ok(OptionType::Put),
+            &quot;C&quot; =&gt; Ok(OptionType::Call),
+            &quot;Call&quot; =&gt; Ok(OptionType::Call),
+            other =&gt; Err(eyre!(&quot;Unsupported option format: {}&quot;, other)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum Exchange {
+    Deribit,
+}
+
+impl std::str::FromStr for Exchange {
+    type Err = Error;
+    fn from_str(s: &amp;str) -&gt; Result&lt;Self, Self::Err&gt; {
+        match s.to_uppercase().as_str() {
+            &quot;DERIBIT&quot; =&gt; Ok(Exchange::Deribit),
+            other =&gt; Err(eyre!(&quot;Unsupported exchange: {}&quot;, other)),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, PartialEq, PartialOrd, Clone)]
+pub struct Instrument {
+    pub kind: String,
+    pub is_active: bool,
+    pub instrument_name: String,
+}
+
+#[derive(Debug)]
+pub struct OptionCharacteristics {
+    pub base_asset: String,
+    pub expiry_dt: NaiveDateTime,
+    pub strike_price: f64,
+    pub option_type: String,
+}
+
+pub fn parse_option_characteristics(
+    symbol: &amp;str,
+    exchange: &amp;Exchange,
+    btc_eth_only: Option&lt;bool&gt;,
+) -&gt; Result&lt;Option&lt;OptionCharacteristics&gt;, Error&gt; {
+
+    let filter_to_btc_eth = btc_eth_only.unwrap_or(true);
+
+    let (base_idx, date_idx, strike_idx, type_idx, dayfirst, hour_offset) = match exchange {
+        Exchange::Deribit  =&gt; (0, 1, 2, 3, true,  8),
+    };
+
+    let split_symbol: Vec&lt;&amp;str&gt; = symbol.split('-').collect();
+
+    if split_symbol.len() &lt;= type_idx {
+        return Err(eyre!(&quot;Symbol '{}' does not have enough parts&quot;, symbol));
+    }
+
+    let base_asset = split_symbol[base_idx].to_string();
+    let date_str = split_symbol[date_idx];
+    let strike_str = split_symbol[strike_idx];
+    let option_type = split_symbol[type_idx].to_string();
+
+    if filter_to_btc_eth &amp;&amp; base_asset != &quot;BTC&quot; &amp;&amp; base_asset != &quot;ETH&quot; {
+        return Ok(None);
+    }
+
+    let date_format = if dayfirst { &quot;%d%B%y&quot; } else { &quot;%Y%m%d&quot; };
+
+    let naive_date = NaiveDate::parse_from_str(date_str, date_format)
+        .map_err(|e| eyre!(&quot;Unable to parse date '{}': {}&quot;, date_str, e))?;
+    let expiry_dt = naive_date
+        .and_hms_opt(0, 0, 0)
+        .expect(&quot;hms opt failed&quot;)
+        .checked_add_signed(Duration::hours(hour_offset))
+        .ok_or(eyre!(&quot;Overflow when adding hour_offset&quot;))?;
+
+    let strike_price = strike_str.parse::&lt;f64&gt;()
+        .map_err(|e| eyre!(&quot;Unable to parse strike price '{}': {}&quot;, strike_str, e))?;
+
+    Ok(Some(OptionCharacteristics {
+        base_asset,
+        expiry_dt,
+        strike_price,
+        option_type,
+    }))
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Ticker {
+    pub instrument_name: String,
+    pub exchange: &amp;'static str,
+    pub timestamp: u64,
+    pub index_price: f64,
+    pub mark_price: f64,
+    pub best_ask_price: Option&lt;f64&gt;,
+    pub best_bid_price: Option&lt;f64&gt;,
+    pub ask_iv: Option&lt;f64&gt;,
+    pub bid_iv: Option&lt;f64&gt;,
+    pub mark_iv: Option&lt;f64&gt;,
+    pub volume: Option&lt;f64&gt;,
+    pub volume_usd: Option&lt;f64&gt;,
+    pub open_interest: Option&lt;f64&gt;,
+    pub high: Option&lt;f64&gt;,
+    pub low: Option&lt;f64&gt;,
+    pub price_change: Option&lt;f64&gt;,
+    pub greeks: Option&lt;Greeks&gt;,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Greeks {
+    pub delta: f64,
+    pub gamma: f64,
+    pub rho: f64,
+    pub theta: f64,
+    pub vega: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct Book {
+    pub instrument_name: String,
+    pub exchange: &amp;'static str,
+    pub id: u64,
+    pub timestamp: u64,
+    pub asks: Vec&lt;Level&gt;,
+    pub bids: Vec&lt;Level&gt;,
+    // ms since epoch
+    pub received: u64,
+}
+
+impl Book {
+    /// Get latency of receiving this book in milliseconds
+    ///
+    /// NOTE: negative latency implies something is wrong, e.g. system clock skew
+    pub fn latency(&amp;self) -&gt; i64 {
+        self.received as i64 - self.timestamp as i64
+    }
+
+    pub fn best_bid_ask(&amp;self) -&gt; (Option&lt;f64&gt;, Option&lt;f64&gt;) {
+        let best_bid = self.bids.iter().max_by(|a, b| a.price.partial_cmp(&amp;b.price).unwrap()).map(|b| b.price);
+        let best_ask = self.asks.iter().min_by(|a, b| a.price.partial_cmp(&amp;b.price).unwrap()).map(|a| a.price);
+        (best_bid, best_ask)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize)]
+#[repr(C)]
+pub struct Level {
+    pub price: f64,
+    pub quantity: f64,
+}
+
+impl&lt;'de&gt; Deserialize&lt;'de&gt; for Level {
+    fn deserialize&lt;D&gt;(deserializer: D) -&gt; Result&lt;Level, D::Error&gt;
+    where
+        D: Deserializer&lt;'de&gt;,
+    {
+        struct LevelVisitor;
+
+        impl&lt;'de&gt; Visitor&lt;'de&gt; for LevelVisitor {
+            /// Return type of this visitor. This visitor computes the max of a
+            /// sequence of values of type T, so the type of the maximum is T.
+            type Value = Level;
+
+            fn expecting(&amp;self, formatter: &amp;mut fmt::Formatter) -&gt; fmt::Result {
+                formatter.write_str(&quot;a tuple of a price and quantity, as strings&quot;)
+            }
+
+            fn visit_seq&lt;S&gt;(self, mut seq: S) -&gt; Result&lt;Level, S::Error&gt;
+            where
+                S: SeqAccess&lt;'de&gt;,
+            {
+                let price = value_to_f64(
+                    seq.next_element::&lt;Value&gt;()?
+                        .ok_or_else(|| de::Error::custom(&quot;missing price&quot;))?,
+                )
+                .map_err(|_| de::Error::custom(&quot;price not a valid float&quot;))?;
+                let quantity = value_to_f64(
+                    seq.next_element::&lt;Value&gt;()?
+                        .ok_or_else(|| de::Error::custom(&quot;missing quantity&quot;))?,
+                )
+                .map_err(|_| de::Error::custom(&quot;quantity not a valid float&quot;))?;
+
+                Ok(Level { price, quantity })
+            }
+        }
+
+        let visitor = LevelVisitor;
+        deserializer.deserialize_seq(visitor)
+    }
+}
+
+fn value_to_f64(value: Value) -&gt; Result&lt;f64, ()&gt; {
+    match value {
+        Value::Number(num) =&gt; num.as_f64().ok_or(()),
+        Value::String(str) =&gt; str.parse::&lt;f64&gt;().map_err(|_| ()),
+        _ =&gt; Err(()),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_string_as_f64() {
+        assert_eq!(
+            serde_json::from_value::&lt;Level&gt;(json!([&quot;1.0&quot;, &quot;2.0&quot;])).unwrap(),
+            Level {
+                price: 1.0,
+                quantity: 2.0
+            }
+        );
+        assert_eq!(
+            serde_json::from_value::&lt;Level&gt;(json!([3.0, 4.0])).unwrap(),
+            Level {
+                price: 3.0,
+                quantity: 4.0
+            }
+        );
+    }
+}
+</code></pre>
+
+<p>py_utils.rs:</p>
+<pre class="codehilite"><code>use once_cell::sync::Lazy;
+use pyo3::prelude::*;
+use std::sync::Mutex;
+use chrono::{NaiveDate, NaiveDateTime};
+use crate::volatility::wing::WingModelService;
+use crate::wing_model::{calibrate_wing_model, interp1d, calculate_wing_model, WingCalibrationOptions, WingModelParams};
+
+static PY_INIT: Lazy&lt;Mutex&lt;bool&gt;&gt; = Lazy::new(|| Mutex::new(false));
+
+pub fn ensure_python_initialized() -&gt; PyResult&lt;()&gt; {
+    let mut initialized = PY_INIT.lock().unwrap();
+
+    if *initialized {
+        return Ok(());
+    }
+
+    // Find Python installation path
+    let python_home = find_python_installation()?;
+
+    // Clean environment before setting anything
+    unsafe {
+        // Clear any existing Python-related environment variables
+        std::env::remove_var(&quot;PYTHONPATH&quot;);
+
+        // Set paths based on detected Python home
+        std::env::set_var(&quot;PYTHONHOME&quot;, &amp;python_home);
+
+        // Create paths for standard library and site-packages
+        let lib_path = format!(&quot;{}\\Lib&quot;, &amp;python_home);
+        let site_packages_path = format!(&quot;{}\\Lib\\site-packages&quot;, &amp;python_home);
+        std::env::set_var(&quot;PYTHONPATH&quot;, format!(&quot;{};{}&quot;, lib_path, site_packages_path));
+    }
+
+    pyo3::prepare_freethreaded_python();
+
+    Python::with_gil(|py| {
+        let sys = py.import(&quot;sys&quot;)?;
+        let path = sys.getattr(&quot;path&quot;)?;
+
+        path.call_method0(&quot;clear&quot;)?;
+
+        let python_dir = std::env::current_dir()?.join(&quot;python&quot;);
+        path.call_method1(&quot;append&quot;, (python_dir.to_str().unwrap(),))?;
+
+        path.call_method1(&quot;append&quot;, (format!(&quot;{}\\Lib&quot;, &amp;python_home),))?;
+        path.call_method1(&quot;append&quot;, (format!(&quot;{}\\Lib\\site-packages&quot;, &amp;python_home),))?;
+        path.call_method1(&quot;append&quot;, (format!(&quot;{}\\DLLs&quot;, &amp;python_home),))?;
+
+        *initialized = true;
+        Ok(())
+    })
+}
+
+fn find_python_installation() -&gt; PyResult&lt;String&gt; {
+    if let Ok(path) = std::env::var(&quot;PYTHONHOME&quot;) {
+        if std::path::Path::new(&amp;path).exists() {
+            return Ok(path);
+        }
+    }
+
+    if let Ok(path_var) = std::env::var(&quot;PATH&quot;) {
+        for path in path_var.split(';') {
+            let python_exe = format!(&quot;{}\\python.exe&quot;, path);
+            if std::path::Path::new(&amp;python_exe).exists() {
+                let parent = std::path::Path::new(&amp;python_exe).parent()
+                    .ok_or_else(|| PyErr::new::&lt;pyo3::exceptions::PyRuntimeError, _&gt;(&quot;Failed to get parent directory&quot;))?;
+                return Ok(parent.to_string_lossy().into_owned());
+            }
+        }
+    }
+
+    let username = std::env::var(&quot;USERNAME&quot;).unwrap_or_else(|_| String::from(&quot;&quot;));
+
+    for version in (6..=12).rev() {
+        let user_path = format!(&quot;C:\\Users\\{}\\AppData\\Local\\Programs\\Python\\Python3{}&quot;, username, version);
+        if std::path::Path::new(&amp;user_path).exists() {
+            return Ok(user_path);
+        }
+
+        let program_files = format!(&quot;C:\\Program Files\\Python3{}&quot;, version);
+        if std::path::Path::new(&amp;program_files).exists() {
+            return Ok(program_files);
+        }
+
+        let program_files_x86 = format!(&quot;C:\\Program Files (x86)\\Python3{}&quot;, version);
+        if std::path::Path::new(&amp;program_files_x86).exists() {
+            return Ok(program_files_x86);
+        }
+    }
+
+    Err(PyErr::new::&lt;pyo3::exceptions::PyRuntimeError, _&gt;(
+        &quot;Could not find Python installation. Please set PYTHONHOME environment variable.&quot;
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pyo3::Python;
+
+    #[test]
+    fn check_project_structure() {
+        let current_dir = std::env::current_dir().expect(&quot;Failed to get current directory&quot;);
+        println!(&quot;Current directory: {}&quot;, current_dir.display());
+
+        let mut dir = current_dir.clone();
+        loop {
+            let numpy_dir = dir.join(&quot;numpy&quot;);
+            if numpy_dir.exists() {
+                println!(&quot;Found numpy directory at: {}&quot;, numpy_dir.display());
+            }
+
+            let init_py = dir.join(&quot;__init__.py&quot;);
+            if init_py.exists() {
+                println!(&quot;Found __init__.py at: {}&quot;, dir.display());
+            }
+
+            if let Some(parent) = dir.parent() {
+                if dir == parent {
+                    break;
+                }
+                dir = parent.to_path_buf();
+            } else {
+                break;
+            }
+        }
+
+        assert!(true);
+    }
+
+    #[test]
+    fn numpy_import() {
+        let _ = ensure_python_initialized();
+
+        Python::with_gil(|py| {
+            py.import(&quot;numpy&quot;).unwrap();
+        })
+    }
+
+    #[test]
+    fn scipy_import() {
+        let _ = ensure_python_initialized();
+
+        Python::with_gil(|py| {
+            py.import(&quot;scipy&quot;).unwrap();
+        })
+    }
+
+    #[test]
+    fn interp1d_test() {
+        let _ = ensure_python_initialized();
+
+        let moneyness = vec![-0.0403237, -0.008575, -0.05113462, 0.05204962, -0.0190463, 0.03224699, 0.0714677, 0.00178778, 0.02219665, -0.02962841, -0.06206369, 0.04219732, 0.01204428];
+        let implied_volatility = vec![0.42462001, 0.23726492, 0.50167129, 0.50495177, 0.272915, 0.38904247, 0.63784246, 0.2485942, 0.32217814, 0.34949636, 0.59085897, 0.46103134, 0.27628486];
+
+        let interp_func = interp1d(&amp;moneyness, &amp;implied_volatility, Some(&quot;cubic&quot;)).unwrap();
+
+        let test_x = vec![-0.07, -0.025, -0.008575, 0.0, 0.025, 0.04219732, 0.08];
+        let expected_vols = vec![0.66732773, 0.31407761, 0.23726492, 0.24482869, 0.33885784, 0.46103134, 0.78738581];
+
+        Python::with_gil(|py| {
+            for (x, expected) in test_x.iter().zip(expected_vols.iter()) {
+                let result: f64 = interp_func.interp_func.call1(py, (*x,)).unwrap().extract(py).unwrap();
+                assert!((result - expected).abs() &lt; 1e-6, &quot;Interpolation mismatch at x={}: got {}, expected {}&quot;, x, result, expected);
+            }
+        })
+    }
+
+    #[test]
+    fn wing_model_calibration_test() {
+        let _ = ensure_python_initialized();
+
+        let calibration_options = WingCalibrationOptions {
+            dc: -0.2,
+            uc: 0.2,
+            dsm: 0.5,
+            usm: 0.5,
+            epochs: Some(10_i32),
+            use_constraints: true,
+            ..Default::default()
+        };
+
+        let mut wing_service = WingModelService::new(calibration_options);
+
+        let expiry = NaiveDate::from_ymd_opt(2027, 9, 14).unwrap().and_hms_opt(16, 23, 42).unwrap();
+        let moneyness = vec![-0.0403237, -0.008575, -0.05113462, 0.05204962, -0.0190463, 0.03224699, 0.0714677, 0.00178778, 0.02219665, -0.02962841, -0.06206369, 0.04219732, 0.01204428];
+        let implied_volatility = vec![0.42462001, 0.23726492, 0.50167129, 0.50495177, 0.272915, 0.38904247, 0.63784246, 0.2485942, 0.32217814, 0.34949636, 0.59085897, 0.46103134, 0.27628486];
+        let vega = vec![3.82228786, 15.88369637, 2.96011745, 2.9856749, 8.23055909, 5.86412354, 2.12079664, 20.04651521, 8.59511368, 5.36666953, 2.61749925, 4.47675985, 14.37535386];
+
+        let ref_price = 96826.74; 
+        let atm_price = 96826.74;
+
+        let surface = wing_service.calibrate_surface(
+            &amp;expiry,
+            moneyness,
+            implied_volatility,
+            vega,
+            ref_price,
+            atm_price,
+        ).expect(&quot;Calibration failed&quot;);
+
+        let expected_sc = 1.7350086041608717;
+        let expected_pc = 134.99451087310732;
+        let expected_cc = 66.29403477631412;
+
+        let tolerance = 1e-4;
+
+        assert!((surface.params.sc - expected_sc).abs() &lt; tolerance, &quot;sc mismatch&quot;);
+        assert!((surface.params.pc - expected_pc).abs() &lt; tolerance, &quot;pc mismatch&quot;);
+        assert!((surface.params.cc - expected_cc).abs() &lt; tolerance, &quot;cc mismatch&quot;);
+    }
+
+}
+</code></pre>
+
+<p>quoter.rs:</p>
+<pre class="codehilite"><code>use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use color_eyre::eyre::Error;
+use std::collections::HashMap;
+use tracing::{info, error};
+use std::time::{Duration, Instant};
+
+use crate::{model::*, ticker_universe};
+use crate::ticker_universe::{TickerUniverse, expiry_to_t, dropna_options, retain_atm_or_otm};
+use crate::exchanges::ExchangeClient;
+use crate::exchanges::deribit::{deribit_ticker_process, deribit_book_process, deribit_instrument_process};
+use crate::volatility::wing::{self, WingModelService};
+
+const RISK_FREE_RATE: f64 = 0.0;
+const ASSETS: [&amp;str; 2] = [&quot;BTC&quot;, &quot;ETH&quot;];
+const DIAGNOSTICS: bool = false;
+
+async fn data_process(
+    book_snd: UnboundedSender&lt;Book&gt;,
+    book_cmd: UnboundedReceiver&lt;InstrumentUpdateCommand&gt;,
+    ticker_snd: UnboundedSender&lt;Ticker&gt;,
+    ticker_cmd: UnboundedReceiver&lt;InstrumentUpdateCommand&gt;,
+    symbols: HashMap&lt;Exchange, Vec&lt;String&gt;&gt;,
+) -&gt; Result&lt;(), Error&gt; {
+
+    // Get the symbols
+    let deribit_symbols = symbols.get(&amp;Exchange::Deribit).expect(&quot;Failed to get Deribit symbol&quot;).clone();
+
+    // Spin up books
+    let deribit_book_handle = tokio::spawn(deribit_book_process(book_snd, deribit_symbols.clone(), book_cmd));
+
+    // Spin up tickers
+    let deribit_ticker_handle = tokio::spawn(deribit_ticker_process(ticker_snd, deribit_symbols, ticker_cmd));
+
+    // Await
+    match deribit_book_handle.await {
+        Ok(Ok(())) =&gt; {
+            info!(&quot;deribit_book_process completed successfully.&quot;);
+        }
+        Ok(Err(e)) =&gt; {
+            error!(&quot;deribit_book_process returned an error: {:?}&quot;, e);
+        }
+        Err(join_error) =&gt; {
+            if join_error.is_cancelled() {
+                error!(&quot;deribit_book_process was cancelled: {:?}&quot;, join_error);
+            } else {
+                error!(&quot;deribit_book_process panicked: {:?}&quot;, join_error);
+            }
+        }
+    };
+    match deribit_ticker_handle.await {
+        Ok(Ok(())) =&gt; {
+            info!(&quot;deribit_ticker_handle completed successfully.&quot;);
+        }
+        Ok(Err(e)) =&gt; {
+            error!(&quot;deribit_ticker_handle returned an error: {:?}&quot;, e);
+        }
+        Err(join_error) =&gt; {
+            if join_error.is_cancelled() {
+                error!(&quot;deribit_ticker_handle was cancelled: {:?}&quot;, join_error);
+            } else {
+                error!(&quot;deribit_ticker_handle panicked: {:?}&quot;, join_error);
+            }
+        }
+    };
+
+    Ok(())
+}
+
+async fn update_books(
+    mut books_receiver: UnboundedReceiver&lt;Book&gt;,
+    books: Arc&lt;Mutex&lt;Books&gt;&gt;,
+    data_event_snd: UnboundedSender&lt;DataChangeEvent&gt;
+) -&gt; Result&lt;(), Error&gt; {
+    while let Some(book) = books_receiver.recv().await {
+        let mut books = books.lock().await;
+        books.handle(book.clone());
+        let event = BookChangeEvent {
+            instrument_name: book.instrument_name,
+            exchange: book.exchange, 
+        };
+        data_event_snd.send(DataChangeEvent::BookChange(event)).expect(&quot;Failed to send book event&quot;);    
+    }
+    Ok(())
+}
+
+async fn update_tickers(
+    mut tickers_receiver: UnboundedReceiver&lt;Ticker&gt;,
+    tickers: Arc&lt;Mutex&lt;Tickers&gt;&gt;,
+    data_event_snd: UnboundedSender&lt;DataChangeEvent&gt;,
+    ticker_event_snd: UnboundedSender&lt;TickerChangeEvent&gt;,
+) -&gt; Result&lt;(), Error&gt; {    
+    while let Some(ticker) = tickers_receiver.recv().await {
+        let mut tickers = tickers.lock().await;
+        tickers.handle(ticker.clone());
+
+        let event = TickerChangeEvent {
+            instrument_name: ticker.instrument_name,
+            exchange: ticker.exchange, 
+        };
+        data_event_snd.send(DataChangeEvent::TickerChange(event.clone())).expect(&quot;Failed to send (data) ticker event&quot;);    
+        ticker_event_snd.send(event).expect(&quot;Failed to send ticker event&quot;);    
+    }
+    Ok(())
+}
+
+async fn update_surface(
+    tickers: Arc&lt;Mutex&lt;Tickers&gt;&gt;,
+    wing_service: Arc&lt;Mutex&lt;WingModelService&gt;&gt;,
+    ticker_universe: TickerUniverse,
+) -&gt; Result&lt;(), Error&gt; {
+
+    let mut last_update = Instant::now();
+    let mut last_coverage_update = Instant::now();
+
+    info!(&quot;Waiting for coverage&quot;);
+
+    let mut coverage_hit = false;
+
+    loop {
+        // Check if 1 second has passed since last Wing model update
+        if last_update.elapsed() &gt;= Duration::from_secs(1) {
+            for asset in ASSETS {
+                let expiries = ticker_universe.get_unique_expiries(asset);
+                for expiry in expiries {
+                    let mut instruments_for_expiry = ticker_universe.get_all_instruments_for_expiry(asset, expiry);
+                    let mut tickers_guard = tickers.lock().await;
+                    let coverage = tickers_guard.get_coverage(instruments_for_expiry.clone(), &quot;deribit&quot;); // Would need to fit for multiple exchanges in a multi-exchange case
+                    std::mem::drop(tickers_guard);
+
+                    if coverage &gt; 0.8 {
+
+                        if !coverage_hit {
+                            coverage_hit = true;
+                            info!(&quot;Coverage reached for an expiry, fitting...&quot;);
+                        }
+
+                        let mut wing_service = wing_service.lock().await;
+                        let mut tickers_guard = tickers.lock().await;
+
+                        let index_price: f64 = instruments_for_expiry
+                            .iter()
+                            .find_map(|instr| {
+                                tickers_guard
+                                    .get(instr.instrument_name.clone(), &quot;deribit&quot;) 
+                                    .map(|ticker| ticker.index_price) 
+                            }).expect(&quot;no index_price found in ticker cache&quot;);
+
+                        let mut strikes = ticker_universe.extract_strikes(instruments_for_expiry.clone(), &quot;deribit&quot;);
+                        let mut option_types = ticker_universe.extract_option_types(instruments_for_expiry.clone(), &quot;deribit&quot;);
+
+                        retain_atm_or_otm(
+                            &amp;mut instruments_for_expiry,
+                            &amp;mut strikes,
+                            &amp;mut option_types,
+                            index_price,
+                        );
+
+                        let mut moneyness: Vec&lt;f64&gt; = strikes.iter().map(|&amp;k| (k / index_price).ln()).collect();
+                        let mut implied_volatility: Vec&lt;f64&gt; = instruments_for_expiry.iter()
+                                .map(|inst| tickers_guard.get(inst.instrument_name.clone(), &quot;deribit&quot;).and_then(|t| t.mark_iv).unwrap_or(f64::NAN))
+                                .collect();
+
+                        implied_volatility = implied_volatility.iter() 
+                                .map(|&amp;x| x / 100.0)
+                                .collect();
+
+                        let t = expiry_to_t(expiry);
+
+                        dropna_options(
+                            &amp;mut implied_volatility,                       
+                            &amp;mut [&amp;mut strikes, &amp;mut moneyness, &amp;mut option_types],
+                        );
+
+                        let mut vega: Vec&lt;f64&gt; = option_types
+                            .iter()
+                            .enumerate()
+                            .map(|(i, opt)| match opt {
+                                OptionType::Call =&gt; black_scholes::call_vega(index_price, strikes[i], RISK_FREE_RATE, implied_volatility[i], t),
+                                OptionType::Put  =&gt; black_scholes::put_vega (index_price, strikes[i], RISK_FREE_RATE, implied_volatility[i], t),
+                            })
+                            .collect();
+
+                        vega = vega.iter() 
+                            .map(|&amp;x| x / 100.0)
+                            .collect();
+
+                        if DIAGNOSTICS {
+                            // ─── diagnostics start ───────────────────────────────────────────────
+                            info!(&quot;Wing-model input snapshot for expiry {expiry:?}&quot;);
+                            info!(&quot;  ▸ t (years)     : {:.6}&quot;, t);
+                            info!(&quot;  ▸ index_price   : {:.6}&quot;, index_price);
+                            info!(&quot;  ▸ vector lengths: {}&quot;, strikes.len());
+
+                            for i in 0..strikes.len() {
+                                info!(
+                                    &quot;    [{i:&gt;3}] strike={:.2}, type={:?}, mny={:.5}, iv={:.5}, vega={:.5}&quot;,
+                                    strikes[i],
+                                    option_types[i],
+                                    moneyness[i],
+                                    implied_volatility[i],
+                                    vega[i],
+                                );
+                            }
+                            info!(&quot;───────────────────────────────────────────────────────────────&quot;);
+                            // ─── diagnostics end ────────────────────────────────────────────────
+                        }
+
+                        // Update the Wing model
+                        if let Err(e) = wing_service.calibrate_surface(
+                            &amp;expiry,
+                            moneyness,
+                            implied_volatility,
+                            vega,
+                            index_price.clone(),
+                            index_price.clone(),
+                        ) {
+                            error!(&quot;Failed to update Wing model for {}: {:?}&quot;, expiry, e);
+                        }
+
+                        println!(&quot;{:?}&quot;, wing_service.get_surface(&amp;expiry).unwrap());
+
+                    } else {
+                        if !coverage_hit &amp;&amp; last_coverage_update.elapsed() &gt;= Duration::from_secs(5) {
+                            info!(&quot;Coverage currently at {:?} %...&quot;, (coverage * 100.0_f64).round());
+                            last_coverage_update = Instant::now();
+                        }
+                    }
+                }
+            }
+            last_update = Instant::now();
+        }
+
+    }
+
+    Ok(())
+}
+
+
+pub struct Quoter&lt;E: ExchangeClient&gt; {
+    pub universe: TickerUniverse,
+    pub exchange: Exchange,
+    pub client: E,
+    pub wing_service: WingModelService,
+    last_wing_update: Instant,
+}
+
+impl&lt;E: ExchangeClient&gt; Quoter&lt;E&gt; {
+    pub fn new(exchange: Exchange, universe: TickerUniverse, client: E) -&gt; Self {
+        let books = Arc::new(Mutex::new(Books::default()));
+        let tickers = Arc::new(Mutex::new(Tickers::default()));
+        let wing_service = WingModelService::default();
+        Self { 
+            exchange, 
+            universe, 
+            client,
+            wing_service,
+            last_wing_update: Instant::now(),
+        }
+    }
+    pub async fn start_quoting(&amp;mut self) -&gt; Result&lt;(), Error&gt; {
+        let books = Arc::new(Mutex::new(Books::default()));
+        let tickers = Arc::new(Mutex::new(Tickers::default()));
+        let wing_service = Arc::new(Mutex::new(self.wing_service.clone()));
+
+        info!(&quot;Books created&quot;);
+
+        let (book_snd, book_recv) = mpsc::unbounded_channel();
+        let (ticker_snd, ticker_recv) = mpsc::unbounded_channel();
+
+        let (data_event_snd, data_event_recv) = mpsc::unbounded_channel::&lt;DataChangeEvent&gt;();
+        let (ticker_event_snd, ticker_event_recv) = mpsc::unbounded_channel::&lt;TickerChangeEvent&gt;();
+
+        let (book_cmd_snd, book_cmd_recv) = mpsc::unbounded_channel::&lt;InstrumentUpdateCommand&gt;();
+        let (ticker_cmd_snd, ticker_cmd_recv) = mpsc::unbounded_channel::&lt;InstrumentUpdateCommand&gt;();
+
+        info!(&quot;Channels created&quot;);
+
+        let events = EventConsumer { books: book_recv, tickers: ticker_recv };
+        let mut data_tickers: HashMap&lt;Exchange, Vec&lt;String&gt;&gt; = HashMap::new();
+        let deribit_tickers: Vec&lt;Instrument&gt; = self.universe.get_active_instruments();
+        data_tickers.insert(Exchange::Deribit, deribit_tickers.into_iter()
+                                                .map(|i| i.instrument_name.clone())
+                                                .collect::&lt;Vec&lt;String&gt;&gt;().clone());
+
+        let ticker_handling_tickers = Arc::clone(&amp;tickers);
+        let surface_handling_tickers = Arc::clone(&amp;tickers);
+        let surface_handling_universe = self.universe.clone();
+
+        let book_handling_book = Arc::clone(&amp;books);
+        let book_handling_data_event_snd = data_event_snd.clone();
+        let ticker_handling_wing_service = Arc::clone(&amp;wing_service);
+
+        let ticker_handling = tokio::spawn(async move {
+            if let Err(e) = update_tickers(
+                events.tickers, 
+                ticker_handling_tickers, 
+                data_event_snd, 
+                ticker_event_snd,
+            ).await {
+                eprintln!(&quot;Error updating tickers {e}&quot;);
+            };
+        });
+
+        let surface_handling = tokio::spawn(async move {
+            if let Err(e) = update_surface(
+                surface_handling_tickers,
+                ticker_handling_wing_service,
+                surface_handling_universe,
+            ).await {
+                eprintln!(&quot;Error updating surface {e}&quot;);
+            };
+        });
+
+        let book_handling = tokio::spawn(async move {
+            if let Err(e) = update_books(events.books, book_handling_book, book_handling_data_event_snd).await {
+                eprintln!(&quot;Error updating books {e}&quot;);
+            };
+        });
+
+        info!(&quot;Ready to spawn data process&quot;);
+
+        let data_streaming = tokio::spawn(async move {
+            if let Err(e) = data_process(book_snd, book_cmd_recv, ticker_snd, ticker_cmd_recv, data_tickers).await {
+                eprintln!(&quot;Error with data process {e}&quot;)
+            };
+        });
+
+        let _ = tokio::join!(
+            book_handling, 
+            ticker_handling, 
+            data_streaming,
+            surface_handling,
+        );
+
+        Ok(())
+    }
+}
+</code></pre>
+
+<p>ticker_universe.rs:</p>
+<pre class="codehilite"><code>use std::collections::{HashMap, HashSet};
+use chrono::{NaiveDateTime, Utc};
+
+use crate::model::{Exchange, OptionType, Instrument, parse_option_characteristics};
+
+pub fn group_by_asset_expiry_option_type&lt;'a&gt;(
+    instruments: &amp;'a [Instrument],
+    exchange: &amp;Exchange,
+) -&gt; HashMap&lt;String, HashMap&lt;NaiveDateTime, HashMap&lt;String, Vec&lt;&amp;'a Instrument&gt;&gt;&gt;&gt; { // Asset Type &lt;&gt; Expiry Date &lt;&gt; Option Type (KEYS)
+
+    let mut grouped = HashMap::new();
+
+    for instrument in instruments {
+        if !instrument.is_active || instrument.kind.to_lowercase() != &quot;option&quot; {
+            continue;
+        }
+
+        match parse_option_characteristics(&amp;instrument.instrument_name, exchange, None) {
+            Ok(None) =&gt; {}
+            Ok(Some(oc)) =&gt; {
+                grouped
+                    .entry(oc.base_asset)
+                    .or_insert_with(HashMap::new)
+                    .entry(oc.expiry_dt)
+                    .or_insert_with(HashMap::new)
+                    .entry(oc.option_type)
+                    .or_insert_with(Vec::new)
+                    .push(instrument);
+            }
+            Err(err) =&gt; {
+                eprintln!(
+                    &quot;Skipping instrument {}: failed to parse characteristics: {}&quot;,
+                    instrument.instrument_name, err
+                );
+            }
+        }
+    }
+
+    grouped
+}
+
+#[derive(Debug, Clone)]
+pub struct TickerUniverse {
+    pub active_tickers: Vec&lt;Instrument&gt;,
+    pub grouped_tickers:
+        HashMap&lt;String, HashMap&lt;NaiveDateTime, HashMap&lt;String, Vec&lt;Instrument&gt;&gt;&gt;&gt;,
+    pub exchange: Exchange,
+}
+
+impl TickerUniverse {
+    /// Create a new TickerUniverse from raw instruments. We call `update_grouped_tickers`
+    /// so that `grouped_tickers` is properly populated at creation.
+    pub fn new(tickers: Vec&lt;Instrument&gt;, exchange: Exchange) -&gt; Self {
+        let mut universe = TickerUniverse {
+            active_tickers: tickers,
+            grouped_tickers: HashMap::new(),
+            exchange,
+        };
+        universe.update_grouped_tickers();
+        universe
+    }
+
+    /// Update the entire `active_tickers` list, then re-group.
+    pub fn update_tickers(&amp;mut self, tickers: Vec&lt;Instrument&gt;) {
+        self.active_tickers = tickers;
+        self.update_grouped_tickers();
+    }
+
+    /// Remove a ticker from `active_tickers`, then re-group.
+    pub fn remove_ticker(&amp;mut self, ticker: &amp;Instrument) {
+        if let Some(pos) = self
+            .active_tickers
+            .iter()
+            .position(|t| t == ticker)
+        {
+            self.active_tickers.remove(pos);
+            self.update_grouped_tickers();
+        }
+    }
+
+    /// Add a new ticker to `active_tickers`, then re-group.
+    pub fn add_ticker(&amp;mut self, ticker: Instrument) {
+        if !self.active_tickers.contains(&amp;ticker) {
+            self.active_tickers.push(ticker);
+            self.update_grouped_tickers();
+        }
+    }
+
+    /// Re-compute the `grouped_tickers` from the current `active_tickers`.
+    /// Since `group_by_asset_expiry_option_type` returns references, we clone them
+    /// so TickerUniverse fully owns the grouped instruments.
+    fn update_grouped_tickers(&amp;mut self) {
+        let grouped_refs = group_by_asset_expiry_option_type(&amp;self.active_tickers, &amp;self.exchange);
+
+        let mut new_grouped = HashMap::new();
+        for (asset, expiry_map) in grouped_refs {
+            let mut expiry_map_owned = HashMap::new();
+            for (expiry, option_type_map) in expiry_map {
+                let mut option_type_map_owned = HashMap::new();
+                for (opt_type, instruments_vec) in option_type_map {
+                    let owned_instruments: Vec&lt;Instrument&gt; = instruments_vec
+                        .into_iter()
+                        .map(|i| i.clone())
+                        .collect();
+                    option_type_map_owned.insert(opt_type, owned_instruments);
+                }
+                expiry_map_owned.insert(expiry, option_type_map_owned);
+            }
+            new_grouped.insert(asset, expiry_map_owned);
+        }
+
+        self.grouped_tickers = new_grouped;
+    }
+
+    /// Verify that every instrument in `active_tickers` appears in `grouped_tickers` (and vice versa).
+    /// Typically, you might compare them by some unique key like the `instrument_name`.
+    pub fn verify_integrity(&amp;self) -&gt; bool {
+        let active_set: HashSet&lt;_&gt; = self
+            .active_tickers
+            .iter()
+            .map(|i| &amp;i.instrument_name)
+            .collect();
+
+        let grouped_set: HashSet&lt;_&gt; = self
+            .grouped_tickers
+            .values() // HashMap&lt;NaiveDateTime, HashMap&lt;String, Vec&lt;Instrument&gt;&gt;&gt;
+            .flat_map(|expiry_map| expiry_map.values())
+            .flat_map(|option_type_map| option_type_map.values())
+            .flatten()
+            .map(|i| &amp;i.instrument_name)
+            .collect();
+
+        active_set == grouped_set
+    }
+
+    pub fn get_active_instruments(&amp;mut self) -&gt; Vec&lt;Instrument&gt; {
+        return self.active_tickers.clone();
+    }
+
+    pub fn get_grouped_instruments(&amp;mut self) -&gt; HashMap&lt;String, HashMap&lt;NaiveDateTime, HashMap&lt;String, Vec&lt;Instrument&gt;&gt;&gt;&gt; {
+        return self.grouped_tickers.clone();
+    }
+
+    pub fn get_all_instruments_for_expiry(
+        &amp;self,
+        asset:  &amp;str,
+        expiry: NaiveDateTime,
+    ) -&gt; Vec&lt;Instrument&gt; {
+        let mut instruments = Vec::new();
+
+        if let Some(expiry_map) = self.grouped_tickers.get(asset) {
+            if let Some(option_map) = expiry_map.get(&amp;expiry) {
+                for v in option_map.values() {
+                    instruments.extend(v.clone());
+                }
+            }
+        }
+
+        instruments
+    }
+
+    /// Get all unique expiries available for a given asset, sorted in ascending order.
+    pub fn get_unique_expiries(&amp;self, asset: &amp;str) -&gt; Vec&lt;NaiveDateTime&gt; {
+        if let Some(expiry_map) = self.grouped_tickers.get(asset) {
+            let mut expiries: Vec&lt;NaiveDateTime&gt; = expiry_map.keys().cloned().collect();
+            expiries.sort();
+            expiries.dedup();
+            expiries
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn extract_strikes(
+        &amp;self,
+        tickers: Vec&lt;Instrument&gt;,
+        exchange: &amp;'static str,
+    ) -&gt; Vec&lt;f64&gt; {
+        let mut strikes: Vec&lt;f64&gt; = Vec::with_capacity(tickers.len());
+
+        if exchange == &quot;deribit&quot; {
+            for instrument in tickers {
+                let strike_field = instrument
+                    .instrument_name
+                    .split('-')
+                    .nth(2)
+                    .expect(&quot;instrument_name missing strike component&quot;);
+
+                let strike = strike_field
+                    .parse::&lt;f64&gt;()
+                    .expect(&quot;strike component is not a valid f64&quot;);
+
+                strikes.push(strike);
+            }
+        } else {
+            panic!(&quot;Invalid exchange, {}&quot;, exchange);
+        }
+
+        strikes
+    }
+
+    pub fn extract_option_types(
+        &amp;self,
+        tickers: Vec&lt;Instrument&gt;,
+        exchange: &amp;'static str,
+    ) -&gt; Vec&lt;OptionType&gt; {
+        if exchange != &quot;deribit&quot; {
+            panic!(&quot;Invalid exchange!!!&quot;);
+        }
+
+        tickers
+            .into_iter()
+            .map(|inst| {
+                inst.instrument_name
+                    .split('-')
+                    .last()
+                    .expect(&quot;instrument_name missing option type&quot;)
+                    .parse::&lt;OptionType&gt;()
+                    .expect(&quot;unsupported option type&quot;)
+            })
+            .collect()
+    }
+
+}
+
+pub fn expiry_to_t(expiry: NaiveDateTime) -&gt; f64 {
+    let now = Utc::now().naive_utc();
+    let seconds = (expiry - now).num_seconds() as f64;
+    seconds / (365.0 * 24.0 * 3600.0)
+}
+
+pub trait VecAny {
+    fn remove_at(&amp;mut self, idx: usize);
+    fn len(&amp;self) -&gt; usize;
+}
+
+impl&lt;T&gt; VecAny for Vec&lt;T&gt; {
+    fn remove_at(&amp;mut self, idx: usize) { self.remove(idx); }
+    fn len(&amp;self) -&gt; usize { self.len() }
+}
+
+pub fn dropna_options(primary: &amp;mut Vec&lt;f64&gt;, others: &amp;mut [&amp;mut dyn VecAny]) {
+    for v in others.iter() { assert_eq!(v.len(), primary.len()); }
+    for i in (0..primary.len()).rev() {
+        if primary[i].is_nan() {
+            primary.remove(i);
+            for v in others.iter_mut() { v.remove_at(i); }
+        }
+    }
+}
+
+pub fn retain_atm_or_otm(
+    instruments:   &amp;mut Vec&lt;Instrument&gt;,
+    strikes:       &amp;mut Vec&lt;f64&gt;,
+    option_types:  &amp;mut Vec&lt;OptionType&gt;,
+    index_price:   f64,
+) {
+    assert_eq!(instruments.len(), strikes.len());
+    assert_eq!(strikes.len(), option_types.len());
+
+    // Walk *backwards* so `remove(i)` doesn’t invalidate later indices.
+    for i in (0..instruments.len()).rev() {
+        let strike = strikes[i];
+        let keep = match option_types[i] {
+            OptionType::Call =&gt; strike &gt;= index_price,
+            OptionType::Put  =&gt; strike &lt;= index_price,
+        };
+
+        if !keep {
+            instruments.remove(i);
+            strikes.remove(i);
+            option_types.remove(i);
+        }
+    }
+}
+</code></pre>
+
+<p>wing_model.rs:</p>
+<pre class="codehilite"><code>use crate::py_utils::ensure_python_initialized;
+use color_eyre::eyre::{Error, Result};
+use pyo3::prelude::*;
+use pyo3::{Python, PyErr, types::PyDict};
+use tracing::error;
+
+#[derive(Debug, Clone)]
+pub struct WingModelParams {
+    pub sc: f64,
+    pub pc: f64,
+    pub cc: f64,
+}
+
+#[derive(Debug, Clone)]
+pub struct WingModelCalibrationResult {
+    pub params: WingModelParams,
+    pub loss: f64,
+    pub arbitrage_free: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct WingCalibrationOptions {
+    pub dc: f64,
+    pub uc: f64,
+    pub dsm: f64,
+    pub usm: f64,
+    pub is_bound_limit: bool,
+    pub epsilon: f64,
+    pub inter: String,
+    pub level: f64,
+    pub method: String,
+    pub epochs: Option&lt;i32&gt;,
+    pub show_error: bool,
+    pub use_constraints: bool,
+}
+
+impl Default for WingCalibrationOptions {
+    fn default() -&gt; Self {
+        Self {
+            dc: -0.2,
+            uc: 0.2,
+            dsm: 0.5,
+            usm: 0.5,
+            is_bound_limit: false,
+            epsilon: 1e-16,
+            inter: &quot;cubic&quot;.to_string(),
+            level: 0.0,
+            method: &quot;SLSQP&quot;.to_string(),
+            epochs: None,
+            show_error: false,
+            use_constraints: false,
+        }
+    }
+}
+
+/// Calibrate the WingModel using the Python implementation
+pub fn calibrate_wing_model(
+    moneyness: &amp;[f64],
+    iv: &amp;[f64],
+    vega: &amp;[f64],
+    options: &amp;WingCalibrationOptions,
+) -&gt; Result&lt;WingModelCalibrationResult&gt; {
+    // Ensure Python is initialized and our module is in the path
+    ensure_python_initialized()?;
+
+    Python::with_gil(|py| {
+        // Import the wing model module
+        let wing_model = py.import(&quot;wing_model&quot;)?;
+
+        // Get the ArbitrageFreeWingModel class
+        let af_wing_model_cls = wing_model.getattr(&quot;ArbitrageFreeWingModel&quot;)?;
+        let af_wing_model_instance = af_wing_model_cls.call0()?;
+
+        // Convert Rust arrays to NumPy arrays
+        let np = py.import(&quot;numpy&quot;)?;
+        let x_array = np.call_method1(&quot;array&quot;, (moneyness,))?;
+        let iv_array = np.call_method1(&quot;array&quot;, (iv,))?;
+        let vega_array = np.call_method1(&quot;array&quot;, (vega,))?;
+
+        // Create kwargs for the calibrate method
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(&quot;dc&quot;, options.dc)?;
+        kwargs.set_item(&quot;uc&quot;, options.uc)?;
+        kwargs.set_item(&quot;dsm&quot;, options.dsm)?;
+        kwargs.set_item(&quot;usm&quot;, options.usm)?;
+        kwargs.set_item(&quot;is_bound_limit&quot;, options.is_bound_limit)?;
+        kwargs.set_item(&quot;epsilon&quot;, options.epsilon)?;
+        kwargs.set_item(&quot;inter&quot;, &amp;options.inter)?;
+        kwargs.set_item(&quot;level&quot;, options.level)?;
+        kwargs.set_item(&quot;method&quot;, &amp;options.method)?;
+        kwargs.set_item(&quot;show_error&quot;, options.show_error)?;
+        kwargs.set_item(&quot;use_constraints&quot;, options.use_constraints)?;
+
+        // Handle optional epochs
+        if let Some(epochs) = options.epochs {
+            kwargs.set_item(&quot;epochs&quot;, epochs)?;
+        }
+
+        // Call the calibrate method
+        let result = af_wing_model_instance.call_method(&quot;calibrate&quot;, (x_array, iv_array, vega_array), Some(&amp;kwargs))?;
+
+        // Extract the results
+        let params = result.get_item(0)?;
+        let sc: f64 = params.get_item(0)?.extract()?;
+        let pc: f64 = params.get_item(1)?.extract()?;
+        let cc: f64 = params.get_item(2)?.extract()?;
+
+        let loss: f64 = result.get_item(1)?.extract()?;
+        let arbitrage_indicator: f64 = result.get_item(2)?.extract()?;
+        let arbitrage_free: bool = arbitrage_indicator &lt;= 1e-7;
+
+        Ok(WingModelCalibrationResult {
+            params: WingModelParams { sc, pc, cc },
+            loss,
+            arbitrage_free,
+        })
+    })
+    .map_err(|e: PyErr| {
+        error!(&quot;Python error: {:?}&quot;, e);
+        Error::from(e)
+    })
+}
+
+/// Calculate model values using the Wing model
+pub fn calculate_wing_model(
+    moneyness: &amp;[f64],
+    ref_price: f64,
+    atm_price: f64,
+    vr: f64,
+    vcr: f64,
+    sr: f64,
+    scr: f64,
+    ssr: f64,
+    pc: f64,
+    cc: f64,
+    dc: f64,
+    uc: f64,
+    dsm: f64,
+    usm: f64,
+) -&gt; Result&lt;Vec&lt;f64&gt;&gt; {
+    ensure_python_initialized()?;
+
+    Python::with_gil(|py| {
+        let wing_model = py.import(&quot;wing_model&quot;)?;
+        let model_class = wing_model.getattr(&quot;WingModel&quot;)?;
+
+        // Convert Rust array to NumPy array
+        let np = py.import(&quot;numpy&quot;)?;
+        let x_array = np.call_method1(&quot;array&quot;, (moneyness,))?;
+
+        // Create a Python dictionary for keyword arguments
+        let kwargs = pyo3::types::PyDict::new(py);
+        kwargs.set_item(&quot;ref_price&quot;, ref_price)?;
+        kwargs.set_item(&quot;atm_price&quot;, atm_price)?;
+        kwargs.set_item(&quot;vr&quot;, vr)?;
+        kwargs.set_item(&quot;vcr&quot;, vcr)?;
+        kwargs.set_item(&quot;sr&quot;, sr)?;
+        kwargs.set_item(&quot;scr&quot;, scr)?;
+        kwargs.set_item(&quot;ssr&quot;, ssr)?;
+        kwargs.set_item(&quot;pc&quot;, pc)?;
+        kwargs.set_item(&quot;cc&quot;, cc)?;
+        kwargs.set_item(&quot;dc&quot;, dc)?;
+        kwargs.set_item(&quot;uc&quot;, uc)?;
+        kwargs.set_item(&quot;dsm&quot;, dsm)?;
+        kwargs.set_item(&quot;usm&quot;, usm)?;
+
+        // Call with x_array as positional arg and rest as keyword args
+        let result = model_class.call_method(&quot;wing&quot;, (x_array,), Some(&amp;kwargs))?;
+
+        // Convert result back to Rust Vec
+        let result_vec: Vec&lt;f64&gt; = result.extract()?;
+        Ok(result_vec)
+    })
+    .map_err(|e: PyErr| {
+        error!(&quot;Python error: {:?}&quot;, e);
+        Error::from(e)
+    })
+}
+
+/// Calculate model values using the Wing model
+pub fn calculate_wing_model_skew(
+    moneyness: &amp;[f64],
+    vc: f64, // ATM vol from interpolation
+    sc: f64, // Current slope
+    pc: f64, // Put curvature
+    cc: f64, // Call curvature
+    dc: f64, // Down cutoff
+    uc: f64, // Up cutoff
+    dsm: f64, // Down smoothing range
+    usm: f64, // Up smoothing range
+) -&gt; Result&lt;Vec&lt;f64&gt;&gt; {
+    ensure_python_initialized()?;
+
+    Python::with_gil(|py| {
+        let wing_model = py.import(&quot;wing_model&quot;)?;
+        let model_class = wing_model.getattr(&quot;ArbitrageFreeWingModel&quot;)?;
+
+        // Convert Rust array to NumPy array
+        let np = py.import(&quot;numpy&quot;)?;
+        let x_array = np.call_method1(&quot;array&quot;, (moneyness,))?;
+
+        // Call with x_array as positional arg and rest as keyword args
+        let result = model_class.call_method(&quot;skew&quot;, (x_array, vc, sc, pc, cc, dc, uc, dsm, usm), None)?;
+
+        // Convert result back to Rust Vec
+        let result_vec: Vec&lt;f64&gt; = result.extract()?;
+        Ok(result_vec)
+    })
+    .map_err(|e: PyErr| {
+        error!(&quot;Python error: {:?}&quot;, e);
+        Error::from(e)
+    })
+}
+
+/// Rust-side handle for the Python `interp1d` object
+pub struct Interp1D {
+    /// Owning reference to the Python callable (GIL-independent)
+    pub interp_func: Py&lt;PyAny&gt;,
+}
+
+impl Interp1D {
+    /// Evaluate the spline on an arbitrary set of x-points
+    pub fn evaluate(&amp;self, x: &amp;[f64]) -&gt; Result&lt;Vec&lt;f64&gt;, PyErr&gt; {
+        Python::with_gil(|py| {
+            let np   = py.import(&quot;numpy&quot;)?;
+            let x_np = np.call_method1(&quot;array&quot;, (x,))?;
+
+            let y_np = self.interp_func.as_ref().call1(py, (x_np,))?;
+            y_np.extract(py)
+        })
+    }
+}
+
+/// Build a cubic (or user-selected) spline that extrapolates
+pub fn interp1d(
+    x: &amp;[f64],
+    y: &amp;[f64],
+    kind: Option&lt;&amp;str&gt;,         
+) -&gt; Result&lt;Interp1D, PyErr&gt; {
+    ensure_python_initialized()?;
+
+    Python::with_gil(|py| {
+        // ---- Python imports ------------------------------------------------
+        let np        = py.import(&quot;numpy&quot;)?;
+        let scipy_int = py.import(&quot;scipy.interpolate&quot;)?;
+        let interp1d  = scipy_int.getattr(&quot;interp1d&quot;)?;
+
+        // ---- Convert slices to NumPy arrays --------------------------------
+        let x_np = np.call_method1(&quot;array&quot;, (x,))?;
+        let y_np = np.call_method1(&quot;array&quot;, (y,))?;
+
+        // ---- Create the underlying Python object ---------------------------
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(&quot;kind&quot;, kind.unwrap_or(&quot;cubic&quot;))?;
+        kwargs.set_item(&quot;fill_value&quot;, &quot;extrapolate&quot;)?;
+
+        let func = interp1d.call((x_np, y_np), Some(&amp;kwargs))?;
+
+        // Wrap and return
+        Ok(Interp1D {
+            interp_func: func.into(),
+        })
+    })
+}
+</code></pre>
+
+<p>volatility/wing.rs:</p>
+<pre class="codehilite"><code>use crate::model::{Ticker, Tickers};
+use crate::wing_model::{calculate_wing_model, calibrate_wing_model, interp1d, calculate_wing_model_skew, WingCalibrationOptions, WingModelCalibrationResult, WingModelParams};
+use chrono::NaiveDateTime;
+use pyo3::prelude::*;
+use color_eyre::eyre::Result;
+use futures_util::future::UnwrapOrElse;
+use std::collections::HashMap;
+use tracing::{info, warn};
+
+#[derive(Debug, Clone)]
+pub struct VolatilitySurface {
+    pub expiry: NaiveDateTime,
+    pub params: WingModelParams,
+    pub moneyness: Vec&lt;f64&gt;,
+    pub volatility: Vec&lt;f64&gt;,
+}
+
+#[derive(Debug, Clone)]
+pub struct WingModelService {
+    pub calibration_options: WingCalibrationOptions,
+    pub surfaces: HashMap&lt;NaiveDateTime, VolatilitySurface&gt;,
+}
+
+impl Default for WingModelService {
+    fn default() -&gt; Self {
+        Self {
+            calibration_options: WingCalibrationOptions::default(),
+            surfaces: HashMap::new(),
+        }
+    }
+}
+
+impl WingModelService {
+    pub fn new(options: WingCalibrationOptions) -&gt; Self {
+        Self {
+            calibration_options: options,
+            surfaces: HashMap::new(),
+        }
+    }
+
+    pub fn get_surface(&amp;self, expiry: &amp;NaiveDateTime) -&gt; Option&lt;&amp;VolatilitySurface&gt; {
+        self.surfaces.get(expiry).clone()
+    }
+
+    /// Calibrate the volatility surface for a given instrument using options data
+    pub fn calculate_surface(
+        &amp;mut self,
+        expiry: &amp;NaiveDateTime,
+        moneyness: Vec&lt;f64&gt;,
+        implied_volatility: Vec&lt;f64&gt;,
+        vega: Vec&lt;f64&gt;,
+        ref_price: f64,
+        atm_price: f64,
+        vr: f64,
+        vcr: f64,
+        sr: f64,
+        scr: f64,
+        ssr: f64,
+    ) -&gt; Result&lt;&amp;VolatilitySurface&gt; {
+        info!(&quot;Calibrating volatility surface for {}&quot;, expiry);
+
+        // Calibrate the model
+        let result = self.surfaces.get(expiry).clone().expect(&quot;Failed to get results&quot;);
+
+        // Calculate the volatility surface using the calibrated parameters
+        let volatility = self.calculate_volatility(
+            &amp;moneyness,
+            ref_price,
+            atm_price,
+            vr,
+            vcr,
+            sr,
+            scr,
+            ssr,
+            &amp;result.params.clone(),
+        )?;
+
+        // Store the surface
+        let surface = VolatilitySurface {
+            expiry: expiry.clone(),
+            params: result.params.clone(),
+            moneyness,
+            volatility,
+        };
+
+        self.surfaces.insert(expiry.clone(), surface);
+
+        Ok(self.surfaces.get(expiry).unwrap())
+    }
+
+    /// Calibrate the volatility surface for a given instrument using options data
+    pub fn calibrate_surface(
+        &amp;mut self,
+        expiry: &amp;NaiveDateTime,
+        log_moneyness: Vec&lt;f64&gt;,
+        ivs: Vec&lt;f64&gt;,
+        vega: Vec&lt;f64&gt;,
+        ref_price: f64,
+        atm_price: f64,
+    ) -&gt; Result&lt;&amp;VolatilitySurface&gt; {
+        info!(&quot;Calibrating volatility surface for {}&quot;, expiry);
+
+        // Calibrate the model
+        let result = self.calibrate_volatility(
+            &amp;log_moneyness,
+            &amp;ivs,
+            &amp;vega,
+            &amp;self.calibration_options,
+        )?;
+
+        if !result.arbitrage_free {
+            warn!(&quot;Calibration resulted in arbitrage opportunity for {}&quot;, expiry);
+        }
+
+        let interp_func = interp1d(&amp;log_moneyness, &amp;ivs, Some(&quot;cubic&quot;)).unwrap();
+
+        let vc: f64 = Python::with_gil(|py| {
+            interp_func.interp_func.call1(py, (0.0,)).unwrap().extract(py).unwrap()
+        });
+
+        let wing_ivs = self.skew_arbitrage_free(
+            &amp;log_moneyness,
+            vc,
+            result.params.sc,
+            result.params.pc,
+            result.params.cc,
+        ).expect(&quot;failed to unwrap wing_ivs&quot;);
+
+        // Store the surface
+        let surface = VolatilitySurface {
+            expiry: expiry.clone(),
+            params: result.params,
+            moneyness: log_moneyness,
+            volatility: wing_ivs,
+        };
+
+        self.surfaces.insert(expiry.clone(), surface);
+
+        Ok(self.surfaces.get(expiry).unwrap())
+
+    }
+
+    /// Calibrate parameters of the volatility model
+    pub fn calibrate_volatility(
+        &amp;self,
+        moneyness: &amp;[f64],
+        iv: &amp;[f64],
+        vega: &amp;[f64],
+        options: &amp;WingCalibrationOptions,
+    ) -&gt; Result&lt;WingModelCalibrationResult&gt; {
+        calibrate_wing_model(
+            moneyness,
+            iv,
+            vega,
+            options
+        )
+    }
+
+    /// Calculate volatility values using calibrated parameters
+    pub fn calculate_volatility(
+        &amp;self,
+        moneyness: &amp;[f64],
+        ref_price: f64,
+        atm_price: f64,
+        vr: f64,
+        vcr: f64,
+        sr: f64,
+        scr: f64,
+        ssr: f64,
+        params: &amp;WingModelParams,
+    ) -&gt; Result&lt;Vec&lt;f64&gt;&gt; {
+        calculate_wing_model(
+            moneyness,
+            ref_price,
+            atm_price,
+            vr,
+            vcr,
+            sr,
+            scr,
+            ssr,
+            params.pc,
+            params.cc,
+            self.calibration_options.dc,
+            self.calibration_options.uc,
+            self.calibration_options.dsm,
+            self.calibration_options.usm,
+        )
+    }
+
+    pub fn skew_arbitrage_free(
+        &amp;self,
+        moneyness: &amp;[f64],
+        vc: f64, // ATM vol from interpolation
+        sc: f64, // Current slope
+        pc: f64, // Put curvature
+        cc: f64, // Call curvature
+    ) -&gt; Result&lt;Vec&lt;f64&gt;&gt; {
+        calculate_wing_model_skew(
+            moneyness,
+            vc,
+            sc,
+            pc,
+            cc,
+            self.calibration_options.dc,
+            self.calibration_options.uc,
+            self.calibration_options.dsm,
+            self.calibration_options.usm,
+        )
+    }
+
+}
+</code></pre>
+
+<p>exchanges/deribit.rs:</p>
+<pre class="codehilite"><code>use color_eyre::eyre::{Result, Error};
+use futures_util::{SinkExt, StreamExt};
+use reqwest::Client as HttpClient; 
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use async_trait::async_trait;
+use tracing::{instrument, trace, debug, info};
+
+use crate::model::*;
+use crate::exchanges::ExchangeClient;
+
+/// The URL for the Deribit test websocket API
+pub const DERIBIT_TESTNET_WSS_URL: &amp;'static str = &quot;wss://test.deribit.com/ws/api/v2&quot;;
+
+/// The URL for the Deribit test REST API
+pub const DERIBIT_TESTNET_REST_URL: &amp;'static str = &quot;https://test.deribit.com/api/v2&quot;;
+
+/// The URL for the Deribit main websocket API
+pub const DERIBIT_MAINNET_WSS_URL: &amp;'static str = &quot;wss://www.deribit.com/ws/api/v2&quot;;
+
+/// The URL for the Deribit main REST API
+pub const DERIBIT_MAINNET_REST_URL: &amp;'static str = &quot;https://www.deribit.com/api/v2&quot;;
+
+#[derive(Debug)]
+pub struct DeribitClient {
+    socket: WebSocketStream&lt;MaybeTlsStream&lt;TcpStream&gt;&gt;,
+    http_client: HttpClient,           
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeribitResponse {
+    pub jsonrpc: String,
+    pub result: Vec&lt;Instrument&gt;,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeribitInstrumentUpdate {
+    pub timestamp: i64,
+    pub state: String,
+    pub instrument_name: String,
+}
+
+impl DeribitInstrumentUpdate {
+    pub fn into_update(self) -&gt; InstrumentUpdate {
+        InstrumentUpdate {
+            timestamp: self.timestamp,
+            state: self.state,
+            instrument_name: self.instrument_name,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeribitBook {
+    pub instrument_name: String,
+    pub change_id: u64,
+    pub timestamp: u64,
+    pub asks: Vec&lt;Level&gt;,
+    pub bids: Vec&lt;Level&gt;,
+}
+
+impl DeribitBook {
+    pub fn into_book(self, received: u64) -&gt; Book {
+        Book {
+            //TODO: normalize
+            instrument_name: self.instrument_name,
+            exchange: &quot;deribit&quot;,
+            id: self.change_id,
+            timestamp: self.timestamp,
+            asks: self.asks,
+            bids: self.bids,
+            received,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeribitTicker {
+    ask_iv: f64,
+    best_ask_amount: f64,
+    best_ask_price: f64,
+    best_bid_amount: f64,
+    best_bid_price: f64,
+    bid_iv: f64,
+    estimated_delivery_price: f64,
+    greeks: DeribitGreeks,
+    index_price: f64,
+    instrument_name: String,
+    interest_rate: f64,
+    last_price: Option&lt;f64&gt;,
+    mark_iv: f64,
+    mark_price: f64,
+    max_price: f64,
+    min_price: f64,
+    open_interest: f64,
+    settlement_price: Option&lt;f64&gt;,
+    state: String,
+    stats: DeribitStats,
+    timestamp: u64,
+    underlying_index: String,
+    underlying_price: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeribitGreeks {
+    delta: f64,
+    gamma: f64,
+    rho: f64,
+    theta: f64,
+    vega: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DeribitStats {
+    high: Option&lt;f64&gt;,
+    low: Option&lt;f64&gt;,
+    price_change: Option&lt;f64&gt;,
+    volume: f64,
+    volume_usd: f64,
+}
+
+impl DeribitTicker {
+    pub fn into_ticker(self) -&gt; Ticker {
+        Ticker {
+            instrument_name: self.instrument_name,
+            exchange: &quot;deribit&quot;,
+            timestamp: self.timestamp,
+            index_price: self.index_price,
+            mark_price: self.mark_price,
+            best_ask_price: Some(self.best_ask_price),
+            best_bid_price: Some(self.best_bid_price),
+            ask_iv: Some(self.ask_iv),
+            bid_iv: Some(self.bid_iv),
+            mark_iv: Some(self.mark_iv),
+            volume: Some(self.stats.volume),
+            volume_usd: Some(self.stats.volume_usd),
+            open_interest: Some(self.open_interest),
+            high: self.stats.high,
+            low: self.stats.low,
+            price_change: self.stats.price_change,
+            greeks: Some(Greeks {
+                delta: self.greeks.delta,
+                gamma: self.greeks.gamma,
+                rho: self.greeks.rho,
+                theta: self.greeks.theta,
+                vega: self.greeks.vega,
+            }),
+        }
+    }
+}
+
+#[async_trait]
+impl ExchangeClient for DeribitClient {
+    /// Connect to the Deribit testnet at [`DERIBIT_TESTNET_WSS_URL`]
+    async fn connect_testnet() -&gt; Result&lt;Self, Error&gt; {
+        let (socket, response) = tokio_tungstenite::connect_async(DERIBIT_TESTNET_WSS_URL).await?;
+        if response.status() != 101 {
+            return Err(Error::msg(
+                &quot;expected status 101 Switching Protocols for websocket initiation&quot;,
+            ));
+        }
+        Ok(DeribitClient { socket, http_client: HttpClient::new() })
+    }
+
+    /// Connect to the Deribit mainnet at [`DERIBIT_MAINNET_WSS_URL`]
+    async fn connect_mainnet() -&gt; Result&lt;Self, Error&gt; {
+        let (socket, response) = tokio_tungstenite::connect_async(DERIBIT_MAINNET_WSS_URL).await?;
+        if response.status() != 101 {
+            return Err(Error::msg(
+                &quot;expected status 101 Switching Protocols for websocket initiation&quot;,
+            ));
+        }
+        Ok(DeribitClient { socket, http_client: HttpClient::new() })
+    }
+
+    async fn get_instruments(
+        &amp;self,
+        currency: Option&lt;&amp;str&gt;,
+        kind: &amp;str,
+        btc_eth_only: Option&lt;bool&gt;,
+        testnet: Option&lt;bool&gt;,
+    ) -&gt; Result&lt;Vec&lt;Instrument&gt;&gt; {
+        let currency = currency.unwrap_or(&quot;any&quot;);
+        let btc_eth_only = btc_eth_only.unwrap_or(true);
+        let testnet = testnet.unwrap_or(false);
+        let rest_url = match testnet {
+            true =&gt; DERIBIT_TESTNET_REST_URL,
+            false =&gt; DERIBIT_MAINNET_REST_URL,
+        };
+        let url = format!(
+            &quot;{}/public/get_instruments?currency={}&amp;kind={}&quot;,
+            rest_url, currency, kind
+        );
+
+        let resp = self
+            .http_client
+            .get(&amp;url)
+            .header(&quot;Content-Type&quot;, &quot;application/json&quot;)
+            .send()
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(Error::msg(format!(
+                &quot;Error: received status code {} from Deribit&quot;,
+                resp.status()
+            )));
+        }
+
+        let response_body: DeribitResponse = resp.json().await?;
+
+        if btc_eth_only {
+            let filtered: Vec&lt;Instrument&gt; = response_body.result
+                                                .into_iter()
+                                                .filter(|inst| {
+                                                    let name = &amp;inst.instrument_name;
+                                                    name.starts_with(&quot;BTC&quot;) || name.starts_with(&quot;ETH&quot;)
+                                                })
+                                                .collect();
+            return Ok(filtered)
+        }
+
+        Ok(response_body.result)
+    }
+
+    async fn subscribe(&amp;mut self, channels: &amp;[impl Serialize + std::marker::Sync]) -&gt; Result&lt;(), Error&gt; {
+        self.socket
+            .send(Message::Text(
+                serde_json::json!({
+                    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+                    &quot;id&quot;: 1,
+                    &quot;method&quot;: &quot;public/subscribe&quot;,
+                    &quot;params&quot;: {
+                        &quot;channels&quot;: channels
+                    }
+                })
+                .to_string().into(),
+            ))
+            .await?;
+        Ok(())
+    }
+}
+
+impl DeribitClient {
+    /// Subscribe to channel `book.{instrument_name}.{group}.{depth}.{interval}`
+    ///
+    /// `interval` can be `100ms` or `agg2`
+    pub async fn subscribe_to_book(
+        &amp;mut self,
+        instrument_name: &amp;str,
+        depth: u32,
+        group: Option&lt;u32&gt;,
+        interval: &amp;str,
+    ) -&gt; Result&lt;(), Error&gt; {
+        match group {
+            Some(group_num) =&gt; {
+                self.subscribe(&amp;[format!(&quot;book.{instrument_name}.{group_num}.{depth}.{interval}&quot;)])
+                    .await
+            },
+            _ =&gt; {
+                self.subscribe(&amp;[format!(&quot;book.{instrument_name}.none.{depth}.{interval}&quot;)])
+                    .await
+            },
+        }
+    }
+
+    /// Subscribe to channel `instrument.state.{kind}.{currency}`
+    ///
+    /// Gets updates for instruments as they are added / removed.
+    /// We use this to keep an up-to-date universe without needing to restart.
+    pub async fn subscribe_to_instruments(
+        &amp;mut self,
+        kind: Option&lt;&amp;str&gt;,
+        currency: Option&lt;&amp;str&gt;,
+    ) -&gt; Result&lt;(), Error&gt; {
+        let kind = kind.unwrap_or(&quot;option&quot;);
+        let currency = currency.unwrap_or(&quot;any&quot;);
+        self.subscribe(&amp;[format!(&quot;instrument.state.{kind}.{currency}&quot;)])
+            .await
+    }
+
+    /// Subscribe to channel `book.{instrument_name}.{group}.{depth}.{interval}`
+    ///
+    /// `interval` can be `100ms` or `agg2`
+    pub async fn subscribe_to_multiple_books(
+        &amp;mut self,
+        instrument_names: Vec&lt;&amp;str&gt;,
+        depth: u32,
+        group: Option&lt;u32&gt;,
+        interval: &amp;str,
+    ) -&gt; Result&lt;(), Error&gt; {
+        // Iterate over instrument_names and construct channel strings
+        let channels: Vec&lt;String&gt; = match group {
+            Some(group_num) =&gt; {
+                instrument_names.iter().map(|&amp;instrument_name| {
+                    format!(&quot;book.{}.{}.{}.{}&quot;, instrument_name, group_num, depth, interval)
+                }).collect()
+            },
+            _ =&gt; {
+                instrument_names.iter().map(|&amp;instrument_name| {
+                    format!(&quot;book.{}.none.{}.{}&quot;, instrument_name, depth, interval)
+                }).collect()
+            }
+        };
+
+        // The chunk size
+        let chunk_size = 50;
+
+        // Iterate over the channels in chunks of 50
+        for chunk in channels.chunks(chunk_size) {
+            // Subscribe to the current chunk of channels
+            let chunk_vec = chunk.to_vec();
+            self.subscribe(&amp;chunk_vec).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Subscribe to channel `ticker.{instrument_name}.{interval}`
+    pub async fn subscribe_to_ticker(
+        &amp;mut self,
+        instrument_name: &amp;str,
+        interval: &amp;str,
+    ) -&gt; Result&lt;(), Error&gt; {
+        self.subscribe(&amp;[format!(&quot;ticker.{instrument_name}.{interval}&quot;)])
+            .await
+    }
+
+    /// Subscribe to channels `ticker.{instrument_name}.{interval}`
+    pub async fn subscribe_to_multiple_tickers(
+        &amp;mut self,
+        instrument_names: Vec&lt;&amp;str&gt;,
+        interval: &amp;str,
+    ) -&gt; Result&lt;(), Error&gt; {
+        const MAX_CHANNELS_PER_SUBSCRIBE: usize = 50;
+
+        for chunk in instrument_names.chunks(MAX_CHANNELS_PER_SUBSCRIBE) {
+            let channels: Vec&lt;String&gt; = chunk
+                .iter()
+                .map(|instrument_name| format!(&quot;ticker.{instrument_name}.{interval}&quot;))
+                .collect();
+
+            self.subscribe(&amp;channels)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    /// Get the next message on the underlying websocket
+    pub async fn next_message(&amp;mut self) -&gt; Result&lt;Value, Error&gt; {
+        let msg = self.socket.next().await.unwrap()?;
+        let msg = match msg {
+            Message::Text(msg) =&gt; msg,
+            _ =&gt; return Err(Error::msg(&quot;expected text message&quot;)),
+        };
+        let msg: Value = serde_json::from_str(&amp;msg)?;
+        Ok(msg)
+    }
+}
+
+pub async fn deribit_ticker_process(snd: UnboundedSender&lt;Ticker&gt;, channels: Vec&lt;String&gt;, channel_updates: UnboundedReceiver&lt;InstrumentUpdateCommand&gt;) -&gt; Result&lt;(), Error&gt; {
+    let mut client = DeribitClient::connect_mainnet().await.unwrap();
+    client
+        .subscribe_to_multiple_tickers(channels.iter().map(|s| s.as_str()).collect(), &quot;agg2&quot;)
+        .await
+        .unwrap();
+    info!(&quot;Listening to Deribit Ticker!&quot;);
+    while let Ok(mut event) = client.next_message().await {
+        if event[&quot;method&quot;] != &quot;subscription&quot; {
+            continue;
+        }
+        let event: ChannelEvent&lt;DeribitTicker&gt; =
+            serde_json::from_value(event[&quot;params&quot;].take()).unwrap();   
+        let event = event.map(|ticker| ticker.into_ticker());
+        snd.send(event.data).unwrap();
+    }
+    Ok(())
+}
+
+pub async fn deribit_book_process(snd: UnboundedSender&lt;Book&gt;, channels: Vec&lt;String&gt;, channel_updates: UnboundedReceiver&lt;InstrumentUpdateCommand&gt;) -&gt; Result&lt;(), Error&gt; {
+    let mut client = DeribitClient::connect_mainnet().await.unwrap();
+    client
+        .subscribe_to_multiple_books(channels.iter().map(|s| s.as_str()).collect(), 1, None, &quot;agg2&quot;)
+        .await
+        .unwrap();
+    info!(&quot;Listening to Deribit Book!&quot;);
+    while let Ok(mut event) = client.next_message().await {
+        if event[&quot;method&quot;] != &quot;subscription&quot; {
+            continue;
+        }
+        let event: ChannelEvent&lt;DeribitBook&gt; =
+            serde_json::from_value(event[&quot;params&quot;].take()).unwrap();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let event = event.map(|book| book.into_book(now as u64));
+        snd.send(event.data).unwrap();
+    }
+    Ok(())
+}
+
+pub async fn deribit_instrument_process(update_snd: Vec&lt;UnboundedSender&lt;InstrumentUpdate&gt;&gt;) -&gt; Result&lt;(), Error&gt; {
+    let mut client = DeribitClient::connect_mainnet().await.unwrap();
+    client
+        .subscribe_to_instruments(Some(&quot;option&quot;), Some(&quot;any&quot;))
+        .await
+        .unwrap();
+    info!(&quot;Listening to Deribit Instruments!&quot;);
+    while let Ok(mut event) = client.next_message().await {
+        if event[&quot;method&quot;] != &quot;subscription&quot; {
+            continue;   
+        }
+        let event: ChannelEvent&lt;DeribitInstrumentUpdate&gt; =
+            serde_json::from_value(event[&quot;params&quot;].take()).expect(&quot;Failed to parse JSON from event params (instrument)&quot;);   
+        let event = event.map(|update| update.into_update());
+
+        for sender in &amp;update_snd {
+            sender.send(event.data.clone()).expect(&quot;Failed to send instrument update&quot;);
+        }
+    }
+    Ok(())
+}
+</code></pre>
+
+<p>exchanges/mod.rs:</p>
+<pre class="codehilite"><code>pub mod deribit;
+
+pub use deribit::DeribitClient;
+
+use async_trait::async_trait;
+use color_eyre::eyre::Error;
+use crate::model::Instrument;
+
+#[async_trait]
+pub trait ExchangeClient: Send + Sync {
+    async fn connect_testnet() -&gt; Result&lt;Self, Error&gt;
+    where
+        Self: Sized;
+
+    async fn connect_mainnet() -&gt; Result&lt;Self, Error&gt;
+    where
+        Self: Sized;
+
+    async fn get_instruments(
+        &amp;self,
+        currency: Option&lt;&amp;str&gt;,
+        kind: &amp;str,
+        btc_eth_only: Option&lt;bool&gt;,
+        testnet: Option&lt;bool&gt;,
+    ) -&gt; Result&lt;Vec&lt;Instrument&gt;, Error&gt;;
+
+    async fn subscribe(&amp;mut self, channels: &amp;[impl serde::Serialize + std::marker::Sync]) -&gt; Result&lt;(), Error&gt;;
+}
+</code></pre>
+
+<p>python/wing_model.py:</p>
+<pre class="codehilite"><code>from functools import partial
+
+from numpy import ndarray, array, arange, zeros, ones, argmin, minimum, maximum, clip
+from numpy.linalg import norm
+from numpy.random import normal
+from scipy.interpolate import interp1d
+from scipy.optimize import minimize
+
+
+class WingModel(object):
+    @staticmethod
+    def skew(moneyness: ndarray, vc: float, sc: float, pc: float, cc: float, dc: float, uc: float, dsm: float,
+             usm: float) -&gt; ndarray:
+        &quot;&quot;&quot;
+
+        :param moneyness: converted strike, moneyness
+        :param vc:
+        :param sc:
+        :param pc:
+        :param cc:
+        :param dc:
+        :param uc:
+        :param dsm:
+        :param usm:
+        :return:
+        &quot;&quot;&quot;
+        assert -1 &lt; dc &lt; 0
+        assert dsm &gt; 0
+        assert 1 &gt; uc &gt; 0
+        assert usm &gt; 0
+        assert 1e-6 &lt; vc &lt; 10  # The numerical optimization process is stable
+        assert -1e6 &lt; sc &lt; 1e6
+        assert dc * (1 + dsm) &lt;= dc &lt;= 0 &lt;= uc &lt;= uc * (1 + usm)
+
+        # volatility at this converted strike, vol(x) is then calculated as follows:
+        vol_list = []
+        for x in moneyness:
+            # volatility at this converted strike, vol(x) is then calculated as follows:
+            if x &lt; dc * (1 + dsm):
+                vol = vc + dc * (2 + dsm) * (sc / 2) + (1 + dsm) * pc * pow(dc, 2)
+            elif dc * (1 + dsm) &lt; x &lt;= dc:
+                vol = vc - (1 + 1 / dsm) * pc * pow(dc, 2) - sc * dc / (2 * dsm) + (1 + 1 / dsm) * (
+                        2 * pc * dc + sc) * x - (pc / dsm + sc / (2 * dc * dsm)) * pow(x, 2)
+            elif dc &lt; x &lt;= 0:
+                vol = vc + sc * x + pc * pow(x, 2)
+            elif 0 &lt; x &lt;= uc:
+                vol = vc + sc * x + cc * pow(x, 2)
+            elif uc &lt; x &lt;= uc * (1 + usm):
+                vol = vc - (1 + 1 / usm) * cc * pow(uc, 2) - sc * uc / (2 * usm) + (1 + 1 / usm) * (
+                        2 * cc * uc + sc) * x - (cc / usm + sc / (2 * uc * usm)) * pow(x, 2)
+            elif uc * (1 + usm) &lt; x:
+                vol = vc + uc * (2 + usm) * (sc / 2) + (1 + usm) * cc * pow(uc, 2)
+            else:
+                raise ValueError(&quot;x value error!&quot;)
+            vol_list.append(vol)
+        return array(vol_list)
+
+    @classmethod
+    def loss_skew(cls, params: [float, float, float], x: ndarray, iv: ndarray, vega: ndarray, vc: float, dc: float,
+                  uc: float, dsm: float, usm: float):
+        &quot;&quot;&quot;
+
+        :param params: sc, pc, cc
+        :param x:
+        :param iv:
+        :param vega:
+        :param vc:
+        :param dc:
+        :param uc:
+        :param dsm:
+        :param usm:
+        :return:
+        &quot;&quot;&quot;
+        sc, pc, cc = params
+        vega = vega / vega.max()
+        value = cls.skew(x, vc, sc, pc, cc, dc, uc, dsm, usm)
+        return norm((value - iv) * vega, ord=2, keepdims=False)
+
+    @classmethod
+    def calibrate_skew(cls, x: ndarray, iv: ndarray, vega: ndarray, dc: float = -0.2, uc: float = 0.2, dsm: float = 0.5,
+                       usm: float = 0.5, is_bound_limit: bool = False,
+                       epsilon: float = 1e-16, inter: str = &quot;cubic&quot;):
+        &quot;&quot;&quot;
+
+        :param x: moneyness
+        :param iv:
+        :param vega:
+        :param dc:
+        :param uc:
+        :param dsm:
+        :param usm:
+        :param is_bound_limit:
+        :param epsilon:
+        :param inter: cubic inter
+        :return:
+        &quot;&quot;&quot;
+
+        vc = interp1d(x, iv, kind=inter, fill_value=&quot;extrapolate&quot;)([0])[0]
+
+        # init guess for sc, pc, cc
+        if is_bound_limit:
+            bounds = [(-1e3, 1e3), (-1e3, 1e3), (-1e3, 1e3)]
+        else:
+            bounds = [(None, None), (None, None), (None, None)]
+        initial_guess = normal(size=3)
+
+        args = (x, iv, vega, vc, dc, uc, dsm, usm)
+        residual = minimize(cls.loss_skew, initial_guess, args=args, bounds=bounds, tol=epsilon, method=&quot;SLSQP&quot;)
+        assert residual.success
+        return residual.x, residual.fun
+
+    @staticmethod
+    def sc(sr: float, scr: float, ssr: float, ref: float, atm: ndarray or float) -&gt; ndarray or float:
+        return sr - scr * ssr * ((atm - ref) / ref)
+
+    @classmethod
+    def loss_scr(cls, x: float, sr: float, ssr: float, ref: float, atm: ndarray, sc: ndarray) -&gt; float:
+        return norm(sc - cls.sc(sr, x, ssr, ref, atm), ord=2, keepdims=False)
+
+    @classmethod
+    def fit_scr(cls, sr: float, ssr: float, ref: float, atm: ndarray, sc: ndarray,
+                epsilon: float = 1e-16) -&gt; [float, float]:
+        init_value = array([0.01])
+        residual = minimize(cls.loss_scr, init_value, args=(sr, ssr, ref, atm, sc), tol=epsilon, method=&quot;SLSQP&quot;)
+        assert residual.success
+        return residual.x, residual.fun
+
+    @staticmethod
+    def vc(vr: float, vcr: float, ssr: float, ref: float, atm: ndarray or float) -&gt; ndarray or float:
+        return vr - vcr * ssr * ((atm - ref) / ref)
+
+    @classmethod
+    def loss_vc(cls, x: float, vr: float, ssr: float, ref: float, atm: ndarray, vc: ndarray) -&gt; float:
+        return norm(vc - cls.vc(vr, x, ssr, ref, atm), ord=2, keepdims=False)
+
+    @classmethod
+    def fit_vcr(cls, vr: float, ssr: float, ref: float, atm: ndarray, vc: ndarray,
+                epsilon: float = 1e-16) -&gt; [float, float]:
+        init_value = array([0.01])
+        residual = minimize(cls.loss_vc, init_value, args=(vr, ssr, ref, atm, vc), tol=epsilon, method=&quot;SLSQP&quot;)
+        assert residual.success
+        return residual.x, residual.fun
+
+    @classmethod
+    def wing(cls, x: ndarray, ref: float, atm: float, vr: float, vcr: float, sr: float, scr: float, ssr: float,
+             pc: float, cc: float, dc: float, uc: float, dsm: float, usm: float) -&gt; ndarray:
+        &quot;&quot;&quot;
+        wing model
+
+        :param x:
+        :param ref:
+        :param atm:
+        :param vr:
+        :param vcr:
+        :param sr:
+        :param scr:
+        :param ssr:
+        :param pc:
+        :param cc:
+        :param dc:
+        :param uc:
+        :param dsm:
+        :param usm:
+        :return:
+        &quot;&quot;&quot;
+        vc = cls.vc(vr, vcr, ssr, ref, atm)
+        sc = cls.sc(sr, scr, ssr, ref, atm)
+        return cls.skew(x, vc, sc, pc, cc, dc, uc, dsm, usm)
+
+
+class ArbitrageFreeWingModel(WingModel):
+    @classmethod
+    def calibrate(cls, x: ndarray, iv: ndarray, vega: ndarray, dc: float = -0.2, uc: float = 0.2, dsm: float = 0.5,
+                  usm: float = 0.5, is_bound_limit: bool = False, epsilon: float = 1e-16, inter: str = &quot;cubic&quot;,
+                  level: float = 0, method: str = &quot;SLSQP&quot;, epochs: int = None, show_error: bool = False,
+                  use_constraints: bool = False) -&gt; ([float, float, float], float):
+        &quot;&quot;&quot;
+
+        :param x:
+        :param iv:
+        :param vega:
+        :param dc:
+        :param uc:
+        :param dsm:
+        :param usm:
+        :param is_bound_limit:
+        :param epsilon:
+        :param inter:
+        :param level:
+        :param method:
+        :param epochs:
+        :param show_error:
+        :param use_constraints:
+        :return:
+        &quot;&quot;&quot;
+        vega = clip(vega, 1e-6, 1e6)
+        iv = clip(iv, 1e-6, 10)
+
+        # init guess for sc, pc, cc
+        if is_bound_limit:
+            bounds = [(-1e3, 1e3), (-1e3, 1e3), (-1e3, 1e3)]
+        else:
+            bounds = [(None, None), (None, None), (None, None)]
+
+        vc = interp1d(x, iv, kind=inter, fill_value=&quot;extrapolate&quot;)([0])[0]
+        constraints = dict(type='ineq', fun=partial(cls.constraints, args=(x, vc, dc, uc, dsm, usm), level=level))
+        args = (x, iv, vega, vc, dc, uc, dsm, usm)
+        if epochs is None:
+            if use_constraints:
+                residual = minimize(cls.loss_skew, normal(size=3), args=args, bounds=bounds, constraints=constraints,
+                                    tol=epsilon, method=method)
+            else:
+                residual = minimize(cls.loss_skew, normal(size=3), args=args, bounds=bounds, tol=epsilon, method=method)
+
+            if residual.success:
+                sc, pc, cc = residual.x
+                arbitrage_free = cls.check_butterfly_arbitrage(sc, pc, cc, dc, dsm, uc, usm, x, vc)
+                return residual.x, residual.fun, arbitrage_free
+            else:
+                epochs = 10
+                if show_error:
+                    print(&quot;calibrate wing-model wrong, use epochs = 10 to find params! params: {}&quot;.format(residual.x))
+
+        if epochs is not None:
+            params = zeros([epochs, 3])
+            loss = ones([epochs, 1])
+            for i in range(epochs):
+                if use_constraints:
+                    residual = minimize(cls.loss_skew, normal(size=3), args=args, bounds=bounds,
+                                        constraints=constraints,
+                                        tol=epsilon, method=&quot;SLSQP&quot;)
+                else:
+                    residual = minimize(cls.loss_skew, normal(size=3), args=args, bounds=bounds, tol=epsilon,
+                                        method=&quot;SLSQP&quot;)
+                if not residual.success and show_error:
+                    print(&quot;calibrate wing-model wrong, wrong @ {} /10! params: {}&quot;.format(i, residual.x))
+                params[i] = residual.x
+                loss[i] = residual.fun
+            min_idx = argmin(loss)
+            sc, pc, cc = params[min_idx]
+            loss = loss[min_idx][0]
+            arbitrage_free = cls.check_butterfly_arbitrage(sc, pc, cc, dc, dsm, uc, usm, x, vc)
+            return (sc, pc, cc), loss, arbitrage_free
+
+    @classmethod
+    def constraints(cls, x: [float, float, float], args: [ndarray, float, float, float, float, float],
+                    level: float = 0) -&gt; float:
+        &quot;&quot;&quot;Butterfly spreads are not arbitrage-bound
+
+        :param x: guess values, sc, pc, cc
+        :param args:
+        :param level:
+        :return:
+        &quot;&quot;&quot;
+        sc, pc, cc = x
+        moneyness, vc, dc, uc, dsm, usm = args
+
+        if level == 0:
+            pass
+        elif level == 1:
+            moneyness = arange(-1, 1.01, 0.01)
+        else:
+            moneyness = arange(-1, 1.001, 0.001)
+
+        return cls.check_butterfly_arbitrage(sc, pc, cc, dc, dsm, uc, usm, moneyness, vc)
+
+    &quot;&quot;&quot;Butterfly spreads have no arbitrage constraints
+    &quot;&quot;&quot;
+
+    @staticmethod
+    def left_parabolic(sc: float, pc: float, x: float, vc: float) -&gt; float:
+        &quot;&quot;&quot;
+
+        :param sc:
+        :param pc:
+        :param x:
+        :param vc:
+        :return:
+        &quot;&quot;&quot;
+        return pc - 0.25 * (sc + 2 * pc * x) ** 2 * (0.25 + 1 / (vc + sc * x + pc * x * x)) + (
+                1 - 0.5 * x * (sc + 2 * pc * x) / (vc + sc * x + pc * x * x)) ** 2
+
+    @staticmethod
+    def right_parabolic(sc: float, cc: float, x: float, vc: float) -&gt; float:
+        &quot;&quot;&quot;
+
+        :param sc:
+        :param cc:
+        :param x:
+        :param vc:
+        :return:
+        &quot;&quot;&quot;
+        return cc - 0.25 * (sc + 2 * cc * x) ** 2 * (0.25 + 1 / (vc + sc * x + cc * x * x)) + (
+                1 - 0.5 * x * (sc + 2 * cc * x) / (vc + sc * x + cc * x * x)) ** 2
+
+    @staticmethod
+    def left_smoothing_range(sc: float, pc: float, dc: float, dsm: float, x: float, vc: float) -&gt; float:
+        a = - pc / dsm - 0.5 * sc / (dc * dsm)
+
+        b1 = -0.25 * ((1 + 1 / dsm) * (2 * dc * pc + sc) - 2 * (pc / dsm + 0.5 * sc / (dc * dsm)) * x) ** 2
+        b2 = -dc ** 2 * (1 + 1 / dsm) * pc - 0.5 * dc * sc / dsm + vc + (1 + 1 / dsm) * (2 * dc * pc + sc) * x - (
+                pc / dsm + 0.5 * sc / (dc * dsm)) * x ** 2
+        b2 = (0.25 + 1 / b2)
+        b = b1 * b2
+
+        c1 = x * ((1 + 1 / dsm) * (2 * dc * pc + sc) - 2 * (pc / dsm + 0.5 * sc / (dc * dsm)) * x)
+        c2 = 2 * (-dc ** 2 * (1 + 1 / dsm) * pc - 0.5 * dc * sc / dsm + vc + (1 + 1 / dsm) * (2 * dc * pc + sc) * x - (
+                pc / dsm + 0.5 * sc / (dc * dsm)) * x ** 2)
+        c = (1 - c1 / c2) ** 2
+        return a + b + c
+
+    @staticmethod
+    def right_smoothing_range(sc: float, cc: float, uc: float, usm: float, x: float, vc: float) -&gt; float:
+        a = - cc / usm - 0.5 * sc / (uc * usm)
+
+        b1 = -0.25 * ((1 + 1 / usm) * (2 * uc * cc + sc) - 2 * (cc / usm + 0.5 * sc / (uc * usm)) * x) ** 2
+        b2 = -uc ** 2 * (1 + 1 / usm) * cc - 0.5 * uc * sc / usm + vc + (1 + 1 / usm) * (2 * uc * cc + sc) * x - (
+                cc / usm + 0.5 * sc / (uc * usm)) * x ** 2
+        b2 = (0.25 + 1 / b2)
+        b = b1 * b2
+
+        c1 = x * ((1 + 1 / usm) * (2 * uc * cc + sc) - 2 * (cc / usm + 0.5 * sc / (uc * usm)) * x)
+        c2 = 2 * (-uc ** 2 * (1 + 1 / usm) * cc - 0.5 * uc * sc / usm + vc + (1 + 1 / usm) * (2 * uc * cc + sc) * x - (
+                cc / usm + 0.5 * sc / (uc * usm)) * x ** 2)
+        c = (1 - c1 / c2) ** 2
+        return a + b + c
+
+    @staticmethod
+    def left_constant_level() -&gt; float:
+        return 1
+
+    @staticmethod
+    def right_constant_level() -&gt; float:
+        return 1
+
+    @classmethod
+    def _check_butterfly_arbitrage(cls, sc: float, pc: float, cc: float, dc: float, dsm: float, uc: float, usm: float,
+                                   x: float, vc: float) -&gt; float:
+        &quot;&quot;&quot;Check for butterfly spread arbitrage opportunities to ensure fit
+
+        time-slice iv-curve
+
+        It is a no-arbitrage (butterfly-free spread, static arbitrage) curve
+
+        :param sc:
+        :param pc:
+        :param cc:
+        :param dc:
+        :param dsm:
+        :param uc:
+        :param usm:
+        :param x:
+        :param vc:
+        :return:
+        &quot;&quot;&quot;
+        # if x &lt; dc * (1 + dsm):
+        #     return cls.left_constant_level()
+        # elif dc * (1 + dsm) &lt; x &lt;= dc:
+        #     return cls.left_smoothing_range(sc, pc, dc, dsm, x, vc)
+        # elif dc &lt; x &lt;= 0:
+        #     return cls.left_parabolic(sc, pc, x, vc)
+        # elif 0 &lt; x &lt;= uc:
+        #     return cls.right_parabolic(sc, cc, x, vc)
+        # elif uc &lt; x &lt;= uc * (1 + usm):
+        #     return cls.right_smoothing_range(sc, cc, uc, usm, x, vc)
+        # elif uc * (1 + usm) &lt; x:
+        #     return cls.right_constant_level()
+        # else:
+        #     raise ValueError(&quot;x value error!&quot;)
+
+        if dc &lt; x &lt;= 0:
+            return cls.left_parabolic(sc, pc, x, vc)
+        elif 0 &lt; x &lt;= uc:
+            return cls.right_parabolic(sc, cc, x, vc)
+        else:
+            return 0
+
+    @classmethod
+    def check_butterfly_arbitrage(cls, sc: float, pc: float, cc: float, dc: float, dsm: float, uc: float, usm: float,
+                                  moneyness: ndarray, vc: float) -&gt; float:
+        &quot;&quot;&quot;
+
+        :param sc:
+        :param pc:
+        :param cc:
+        :param dc:
+        :param dsm:
+        :param uc:
+        :param usm:
+        :param moneyness:
+        :param vc:
+        :return:
+        &quot;&quot;&quot;
+        con_arr = []
+        for x in moneyness:
+            con_arr.append(cls._check_butterfly_arbitrage(sc, pc, cc, dc, dsm, uc, usm, x, vc))
+        con_arr = array(con_arr)
+        if (con_arr &gt;= 0).all():
+            return minimum(con_arr.mean(), 1e-7)
+        else:
+            return maximum((con_arr[con_arr &lt; 0]).mean(), -1e-7)
+</code></pre>
+
+<p>Cargo.toml:</p>
+<pre class="codehilite"><code>[package]
+name = &quot;options_pricing&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2024&quot;
+
+[dependencies]
+async-trait = &quot;0.1.88&quot;
+black_scholes = &quot;0.10.2&quot;
+chrono = { version = &quot;0.4.40&quot;, features = [&quot;serde&quot;] }
+color-eyre = &quot;0.6.3&quot;
+futures-util = &quot;0.3.31&quot;
+indexmap = &quot;2.8.0&quot;
+once_cell = &quot;1.21.3&quot;
+pyo3 = { version = &quot;0.25.0&quot;, features = [&quot;auto-initialize&quot;] }
+reqwest = { version = &quot;0.12.15&quot;, features = [&quot;json&quot;, &quot;native-tls&quot;] }
+serde = { version = &quot;1.0.219&quot;, features = [&quot;derive&quot;] }
+serde_json = &quot;1.0.140&quot;
+tokio = { version = &quot;1.44.1&quot;, features = [&quot;full&quot;] }
+tokio-tungstenite = { version = &quot;0.26.2&quot;, features = [&quot;native-tls&quot;] }
+tracing = &quot;0.1.41&quot;
+tracing-subscriber = &quot;0.3.19&quot;
+
+[profile.release]
+lto = true
+</code></pre>
+
+<p>.gitignore:</p>
+<pre class="codehilite"><code># Generated by Cargo
+# will have compiled files and executables
+debug/
+target/
+
+# These are backup files generated by rustfmt
+**/*.rs.bk
+
+# MSVC Windows builds of rustc generate these, which store debugging information
+*.pdb
+</code></pre>
+</article>
+</body>
+</html>

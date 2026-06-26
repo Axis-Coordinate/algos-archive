@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Small Trader Alpha #7: Perpetual Arbitrage Pt. 2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Small Trader Alpha #7: Perpetual Arbitrage Pt. 2</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-10-01</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/small-trader-alpha-7-perpetual-arbitrage</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Advanced perpetual arbitrage strategy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/e0cec79ad900.webp"><img alt="Create a more glorious and grand cover image for a Substack article about implementing a trading algorithm, in landscape format. The cover should resemble a prestigious, 'holy grail' textbook on perpetual arbitrage for cryptocurrency, sitting on a luxurious wooden table. The book design should be ornate, with gold accents, intricate borders, and a bold title that reads 'Perpetual Arbitrage Trading' in an elegant, commanding font. Include subtle, refined crypto-themed symbols like Bitcoin and Ethereum logos, and trading charts. The lighting should be dramatic, casting a warm, radiant glow on the book, emphasizing its grandeur and importance." src="images/5747853ff488.webp" /></a></p>
+<h3>Introduction</h3>
+<hr />
+<p>In the previous article in the small trader alpha series, we walked through a taker strategy quite broadly. Now, we will dive into the implementation details of that providing the <em>FULL</em> code for a perpetual arbitrage scanner in Rust that can be put into production.</p>
+<p>This article will explain the code, but the appendix will contain the entire code which can easily be copy-pasted. This is the easiest method instead of everyone having to email me for access to a GitHub. In making this project, we were also able to contribute to barter-rs, an open-source project similar to CCXT but for Rust.</p>
+<p>This code is presented with the intention that the comments and naming should be self-documenting. Thus, it is up to the reader to build that understanding of how it works by reading it. This is a simple expectation I hope.</p>
+<h3>Using the Scanner</h3>
+<hr />
+<p>We have two binaries, this is the scanner searching for arbitrages after startup. If we run “cargo run --bin data --release”, then we can see the below output. It even found an arb! Sadly, this one likely isn’t real as we haven’t set fees so by default it is 0, but this is a short sample.</p>
+<p><a href="images/5925db18909a.png"><img alt="" src="images/4b0b4940c600.png" /></a></p>
+<h3>Code</h3>
+<hr />
+<h4>File Structure:</h4>
+<p>Starting with file structure:</p>
+<p><a href="images/d5ef8f31d94e.png"><img alt="" src="images/7356395200a0.png" /></a></p>
+<p>You can run cargo new perpscan-draft, or whatever you want to call it (but with the names changed out in .toml later).</p>
+<h4>Cargo Files:</h4>
+<p>This is Cargo.toml</p>
+<pre class="codehilite"><code>[package]
+name = &quot;perpscan&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+[dependencies]
+barter = {git = &quot;https://github.com/imbrem/barter-rs&quot;, branch = &quot;okx-pong&quot;}
+barter-data = {git = &quot;https://github.com/imbrem/barter-rs&quot;, branch = &quot;okx-pong&quot;}
+barter-integration = {git = &quot;https://github.com/imbrem/barter-rs&quot;, branch = &quot;okx-pong&quot;}
+chrono = &quot;0.4.38&quot;
+clap = { version = &quot;4.5.16&quot;, features = [&quot;derive&quot;] }
+color-eyre = &quot;0.6.3&quot;
+csv = &quot;1.3.0&quot;
+flate2 = &quot;1.0.31&quot;
+futures = &quot;0.3.30&quot;
+fxhash = &quot;0.2.1&quot;
+indexmap = &quot;2.4.0&quot;
+itertools = &quot;0.13.0&quot;
+rand = &quot;0.8.5&quot;
+rand_xoshiro = &quot;0.6.0&quot;
+serde = { version = &quot;1.0.208&quot;, features = [&quot;derive&quot;] }
+tokio = &quot;1.39.2&quot;
+tracing = &quot;0.1.40&quot;
+tracing-subscriber = &quot;0.3.18&quot;
+</code></pre>
+
+<p>This is .gitignore:</p>
+<pre class="codehilite"><code>/target
+.data
+secrets.json
+D:/
+</code></pre>
+
+<h4>Rust Files:</h4>
+<p>Now, time for the fun part. Let’s start with lib.rs:</p>
+<p><a href="images/41f42f0129b8.png"><img alt="" src="images/7bf3bdeb740f.png" /></a></p>
+<pre class="codehilite"><code>use core::f64;
+use std::collections::VecDeque;
+
+use barter_data::{event::MarketEvent, subscription::book::OrderBookL1};
+use barter_integration::model::{instrument::Instrument, Exchange};
+use chrono::{DateTime, TimeDelta, Utc};
+// use tokio::try_join;
+use indexmap::IndexMap;
+use tracing::info;
+
+/// Statistics and order book for a given exchange
+#[derive(Debug)]
+pub struct ExchangeData {
+    /// Exponential moving average of latency of messages from the exchange
+    latency_ema: TimeDelta,
+    /// Latency of the most recent message from the exchange
+    latency: TimeDelta,
+    /// Time between the most recent two updates from the exchange
+    time_between_updates: TimeDelta,
+    /// Exponential moving average of time between updates from the exchange
+    time_between_updates_ema: TimeDelta,
+    /// Order book data from the exchange
+    book: OrderBookL1,
+    /// Midpoint of the order book
+    midpoint: f64,
+    /// Number of updates from the exchange so far
+    updates: u64,
+    /// Whether the most recent update was a repeat of the previous update
+    repeat: bool,
+}
+
+impl ExchangeData {
+    pub fn new() -&gt; ExchangeData {
+        ExchangeData {
+            latency_ema: Default::default(),
+            latency: Default::default(),
+            time_between_updates: Default::default(),
+            time_between_updates_ema: Default::default(),
+            book: OrderBookL1 {
+                best_bid: Default::default(),
+                best_ask: Default::default(),
+                last_update_time: Default::default(),
+            },
+            midpoint: f64::NAN,
+            updates: 0,
+            repeat: false,
+        }
+    }
+}
+
+impl ExchangeData {
+    pub fn update(&amp;mut self, book: MarketEvent&lt;Instrument, OrderBookL1&gt;, k: i32) {
+        let latency = book.received_time - book.exchange_time;
+        let kl = k.min(self.updates.try_into().unwrap_or(i32::MAX));
+        self.latency = latency;
+        self.latency_ema = ((self.latency_ema * kl) + latency) / (kl + 1);
+
+        if book.kind.last_update_time &gt; self.book.last_update_time &amp;&amp; self.updates &gt; 0 {
+            let time_between_updates = book.kind.last_update_time - self.book.last_update_time;
+            self.time_between_updates = time_between_updates;
+            let kl = k.min(self.updates.try_into().unwrap_or(i32::MAX) - 1);
+            self.time_between_updates_ema =
+                ((self.time_between_updates_ema * kl) + time_between_updates) / (kl + 1);
+            self.repeat = false;
+        } else {
+            self.repeat = true;
+        }
+
+        self.book = book.kind;
+
+        // TODO: use NaN?
+        self.midpoint = if self.book.best_ask.amount == 0.0 {
+            self.book.best_bid.price
+        } else if self.book.best_bid.amount == 0.0 {
+            self.book.best_ask.price
+        } else {
+            (self.book.best_ask.price + self.book.best_bid.price) / 2.0
+        };
+
+        self.updates += 1;
+    }
+}
+
+#[derive(Debug)]
+pub struct PerpArbScanner {
+    /// Threshold for entering a trade
+    pub entry_threshold: f64,
+    /// Total profit and loss
+    pub pnl: f64,
+    /// Trading fees for each exchange; defaults to zero
+    pub trading_fees: IndexMap&lt;Exchange, f64&gt;,
+    /// Number of updates processed so far for all exchanges
+    pub updates: u64,
+    /// Execution latency for trades
+    pub execution_latency: TimeDelta,
+    /// Data for each exchange; see [`ExchangeData`]
+    pub exchange_data: IndexMap&lt;Exchange, ExchangeData&gt;,
+    /// Pending trades that have been identified but not yet executed
+    pub pending_trades: VecDeque&lt;PendingTrade&gt;,
+    /// Live trades that have been executed but not yet exited
+    pub live_trades: Vec&lt;LiveTrade&gt;,
+    /// Completed trades that have been exited
+    pub completed_trades: Vec&lt;CompletedTrade&gt;,
+    /// Time of the most recent update
+    pub latest_update: DateTime&lt;Utc&gt;,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PendingTrade {
+    pub short_exchange: usize,
+    pub long_exchange: usize,
+    pub time: DateTime&lt;Utc&gt;,
+    pub attempted_short_sell_price: f64,
+    pub attempted_long_buy_price: f64,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct LiveTrade {
+    pub short_exchange: usize,
+    pub long_exchange: usize,
+    pub amount: f64,
+    pub short_sell_price: f64,
+    pub long_buy_price: f64,
+    pub attempted_short_sell_price: f64,
+    pub attempted_long_buy_price: f64,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct CompletedTrade {
+    pub short_exchange: Exchange,
+    pub long_exchange: Exchange,
+    pub amount: f64,
+    pub long_buy_price: f64,
+    pub long_sell_price: f64,
+    pub short_sell_price: f64,
+    pub short_buy_price: f64,
+    pub attempted_short_sell_price: f64,
+    pub attempted_long_buy_price: f64,
+}
+
+impl CompletedTrade {
+    pub fn fee_free_pnl(&amp;self) -&gt; f64 {
+        let long_pnl = self.amount * (self.long_sell_price - self.long_buy_price);
+        let short_pnl = self.amount * (self.short_sell_price - self.short_buy_price);
+        long_pnl + short_pnl
+    }
+
+    pub fn total_fees(&amp;self, trading_fees: &amp;IndexMap&lt;Exchange, f64&gt;) -&gt; f64 {
+        let long_fee = self.amount
+            * trading_fees
+                .get(&amp;self.short_exchange)
+                .copied()
+                .unwrap_or_default();
+        let short_fee = self.amount
+            * trading_fees
+                .get(&amp;self.long_exchange)
+                .copied()
+                .unwrap_or_default();
+        long_fee + short_fee
+    }
+
+    pub fn pnl(&amp;self, trading_fees: &amp;IndexMap&lt;Exchange, f64&gt;) -&gt; f64 {
+        self.fee_free_pnl() - self.total_fees(trading_fees)
+    }
+}
+
+impl PerpArbScanner {
+    pub fn new(
+        entry_threshold: f64,
+        execution_latency: TimeDelta,
+        trading_fees: IndexMap&lt;Exchange, f64&gt;,
+    ) -&gt; PerpArbScanner {
+        assert!(entry_threshold &gt; 1.0);
+        PerpArbScanner {
+            entry_threshold,
+            updates: 0,
+            pnl: 0.0,
+            execution_latency,
+            exchange_data: IndexMap::default(),
+            pending_trades: VecDeque::default(),
+            live_trades: Vec::default(),
+            latest_update: DateTime::default(),
+            trading_fees,
+            completed_trades: Vec::default(),
+        }
+    }
+}
+
+impl PerpArbScanner {
+    pub fn handle_book(&amp;mut self, book: MarketEvent&lt;Instrument, OrderBookL1&gt;) {
+        self.update_books(book);
+        self.process_pending_trades(self.latest_update);
+        self.entry_opportunities();
+        self.exit_opportunities();
+    }
+
+    pub fn update_books(&amp;mut self, book: MarketEvent&lt;Instrument, OrderBookL1&gt;) {
+        let data = self
+            .exchange_data
+            .entry(book.exchange.clone())
+            .or_insert(ExchangeData::new());
+        self.latest_update = book.received_time;
+
+        const EMA_WINDOW: i32 = 20;
+        // const DATA_RATE: u64 = 25;
+
+        // if data.updates % DATA_RATE == 0 {
+        //     info!(&quot;{exchange} ==&gt; {book:?}&quot;);
+        // }
+
+        data.update(book, EMA_WINDOW);
+
+        self.updates += 1;
+    }
+
+    pub fn entry_opportunities(&amp;mut self) {
+        let num_exchanges = self.exchange_data.len();
+        for long_exchange in 0..num_exchanges {
+            for short_exchange in 0..num_exchanges {
+                if long_exchange == short_exchange {
+                    continue;
+                }
+                let ask_data = &amp;self.exchange_data[long_exchange];
+                let bid_data = &amp;self.exchange_data[short_exchange];
+                if bid_data.book.best_bid.amount == 0.0 || ask_data.book.best_ask.amount == 0.0 {
+                    continue;
+                }
+                let short_sell_price = bid_data.book.best_bid.price;
+                let long_buy_price = ask_data.book.best_ask.price;
+                let spread_ratio = short_sell_price / long_buy_price;
+                if spread_ratio &gt; self.entry_threshold
+                    &amp;&amp; !self.live_trades.iter().any(|trade| {
+                        (trade.long_exchange == short_exchange
+                            || trade.short_exchange == short_exchange)
+                            &amp;&amp; (trade.long_exchange == long_exchange
+                                || trade.short_exchange == long_exchange)
+                    })
+                    &amp;&amp; !self
+                        .pending_trades
+                        .iter()
+                        .any(|trade| trade.long_exchange == long_exchange)
+                {
+                    self.pending_trades.push_back(PendingTrade {
+                        short_exchange,
+                        long_exchange,
+                        time: self.latest_update,
+                        attempted_short_sell_price: short_sell_price,
+                        attempted_long_buy_price: long_buy_price,
+                    });
+                }
+            }
+        }
+    }
+
+    pub fn exit_opportunities(&amp;mut self) {
+        self.live_trades.retain(|trade| {
+            let short_book = self.exchange_data[trade.short_exchange].book;
+            let long_book = self.exchange_data[trade.long_exchange].book;
+            let midpx_spread = (short_book.best_bid.price + short_book.best_ask.price)
+                / (long_book.best_ask.price + long_book.best_bid.price);
+            if midpx_spread &lt;= 1.0 {
+
+                let completed_trade = CompletedTrade {
+                    short_exchange: self
+                        .exchange_data
+                        .get_index(trade.short_exchange)
+                        .unwrap()
+                        .0
+                        .clone(),
+                    long_exchange: self
+                        .exchange_data
+                        .get_index(trade.long_exchange)
+                        .unwrap()
+                        .0
+                        .clone(),
+                    amount: trade.amount,
+                    long_buy_price: trade.long_buy_price,
+                    long_sell_price: long_book.best_ask.price,
+                    short_sell_price: trade.short_sell_price,
+                    short_buy_price: short_book.best_bid.price,
+                    attempted_short_sell_price: trade.attempted_short_sell_price,
+                    attempted_long_buy_price: trade.attempted_long_buy_price,
+                };
+
+                let fee_free_pnl = completed_trade.fee_free_pnl();
+                let fees = completed_trade.total_fees(&amp;self.trading_fees);
+                let pnl = completed_trade.pnl(&amp;self.trading_fees);
+
+                info!(
+                    &quot;exiting trade {}, {} @ {midpx_spread}&quot;, 
+                    completed_trade.short_exchange, completed_trade.long_exchange
+                );
+
+                self.completed_trades.push(completed_trade);
+                self.pnl += pnl;
+
+                info!(&quot;completed trade pnl: {fee_free_pnl}, fees: {fees}, net pnl: {pnl}, total pnl {}&quot;, self.pnl);
+
+                false
+            } else {
+                true
+            }
+        });
+    }
+
+    pub fn process_pending_trades(&amp;mut self, time: DateTime&lt;Utc&gt;) {
+        while let Some(trade) = self.pending_trades.front() {
+            if trade.time + self.execution_latency &gt; time {
+                break;
+            }
+            let trade = self.pending_trades.pop_front().unwrap();
+            let bid = self.exchange_data[trade.short_exchange].book.best_bid;
+            let ask = self.exchange_data[trade.long_exchange].book.best_ask;
+            let amount = bid.amount.min(ask.amount);
+            if amount != 0.0 {
+                // info!(
+                //     &quot;entering trade: {}; {}&quot;,
+                //     trade.short_exchange, trade.long_exchange
+                // );
+                self.live_trades.push(LiveTrade {
+                    short_exchange: trade.short_exchange,
+                    long_exchange: trade.long_exchange,
+                    amount: bid.amount.min(ask.amount),
+                    short_sell_price: bid.price,
+                    long_buy_price: ask.price,
+                    attempted_short_sell_price: trade.attempted_short_sell_price,
+                    attempted_long_buy_price: trade.attempted_long_buy_price,
+                });
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use barter_data::{
+        event::MarketEvent,
+        subscription::book::{Level, OrderBookL1},
+    };
+    use barter_integration::model::instrument::{kind::InstrumentKind, Instrument};
+    use chrono::{DateTime, TimeDelta};
+
+    use super::*;
+
+    const TEST_DELAY: TimeDelta = TimeDelta::milliseconds(30);
+
+    fn test_event(
+        exchange: &amp;'static str,
+        bid: f64,
+        ask: f64,
+        time: i64,
+    ) -&gt; MarketEvent&lt;Instrument, OrderBookL1&gt; {
+        MarketEvent {
+            exchange_time: DateTime::from_timestamp_millis(time).unwrap(),
+            received_time: DateTime::from_timestamp_millis(time).unwrap() + TEST_DELAY,
+            exchange: exchange.into(),
+            instrument: Instrument::new(&quot;TST&quot;, &quot;USDT&quot;, InstrumentKind::Perpetual),
+            kind: OrderBookL1 {
+                last_update_time: DateTime::from_timestamp_millis(time).unwrap(),
+                best_bid: Level {
+                    price: bid,
+                    amount: 1.0,
+                },
+                best_ask: Level {
+                    price: ask,
+                    amount: 1.0,
+                },
+            },
+        }
+    }
+
+    // #[test]
+    // fn no_arb() {
+    //     let trading_fees = Default::default();
+    //     let mut scanner = PerpArbScanner::new(1.0005, TimeDelta::milliseconds(500), trading_fees);
+
+    //     let events = [
+    //         test_event(&quot;A&quot;, 100.0, 101.0, 0),
+    //         test_event(&quot;A&quot;, 101.0, 102.0, 100),
+    //         test_event(&quot;B&quot;, 101.0, 102.0, 200),
+    //         test_event(&quot;C&quot;, 101.0, 102.0, 300),
+    //     ];
+
+    //     let num_events = events.len() as u64;
+
+    //     for book in events {
+    //         scanner.handle_book(book);
+    //     }
+
+    //     assert_eq!(scanner.pending_trades.len(), 0);
+    //     assert_eq!(scanner.pnl, 0.0);
+    //     assert_eq!(scanner.updates, num_events);
+    // }
+
+    #[test]
+    fn arb() {
+        let trading_fees = Default::default();
+        let mut scanner = PerpArbScanner::new(1.0005, TimeDelta::milliseconds(500), trading_fees);
+
+        let pre_trade = [
+            test_event(&quot;A&quot;, 99.0, 100.0, 0),
+            test_event(&quot;B&quot;, 101.0, 102.0, 100),
+        ];
+
+        let mut num_events = pre_trade.len() as u64;
+
+        for book in pre_trade {
+            scanner.handle_book(book);
+        }
+
+        // We saw exchange &quot;A&quot; first, _then_ B
+        assert_eq!(
+            scanner.exchange_data.get_index(0).unwrap().0.to_string(),
+            &quot;A&quot;
+        );
+        assert_eq!(
+            scanner.exchange_data.get_index(1).unwrap().0.to_string(),
+            &quot;B&quot;
+        );
+
+        let pending_trade = vec![PendingTrade {
+            long_exchange: 0,
+            short_exchange: 1,
+            time: DateTime::from_timestamp_millis(100).unwrap() + TEST_DELAY,
+            attempted_short_sell_price: 101.0,
+            attempted_long_buy_price: 100.0,
+        }];
+
+        assert_eq!(scanner.pending_trades, pending_trade);
+        assert_eq!(scanner.live_trades, vec![]);
+        assert_eq!(scanner.completed_trades, vec![]);
+        assert_eq!(scanner.pnl, 0.0);
+        assert_eq!(scanner.updates, num_events);
+
+        let during_trade = [
+            test_event(&quot;A&quot;, 100.0, 101.0, 300),
+            test_event(&quot;B&quot;, 103.0, 104.0, 400),
+        ];
+
+        num_events += during_trade.len() as u64;
+
+        for book in during_trade {
+            scanner.handle_book(book);
+        }
+
+        // Pending trade does not change, since not enough time has passed for it to become live
+        assert_eq!(scanner.pending_trades, pending_trade);
+        assert_eq!(scanner.live_trades, vec![]);
+        assert_eq!(scanner.completed_trades, vec![]);
+        assert_eq!(scanner.pnl, 0.0);
+        assert_eq!(scanner.updates, num_events);
+
+        let on_execution = [
+            test_event(&quot;A&quot;, 100.0, 101.0, 600),
+            test_event(&quot;B&quot;, 103.0, 104.0, 700),
+        ];
+
+        num_events += on_execution.len() as u64;
+
+        for book in on_execution {
+            scanner.handle_book(book);
+        }
+
+        let live_trade = vec![LiveTrade {
+            short_exchange: 1,
+            long_exchange: 0,
+            amount: 1.0,
+            short_sell_price: 103.0,
+            long_buy_price: 101.0,
+            attempted_short_sell_price: 101.0,
+            attempted_long_buy_price: 100.0,
+        }];
+
+        // Pending trade is now live
+        assert_eq!(scanner.pending_trades, vec![]);
+        assert_eq!(scanner.live_trades, live_trade);
+        assert_eq!(scanner.completed_trades, vec![]);
+        assert_eq!(scanner.pnl, 0.0);
+        assert_eq!(scanner.updates, num_events);
+
+        // Things don't change even if the deal gets much better, for now
+        let while_live = [
+            test_event(&quot;A&quot;, 100.0, 101.0, 800),
+            test_event(&quot;B&quot;, 110.0, 112.0, 900),
+        ];
+
+        num_events += while_live.len() as u64;
+
+        for book in while_live {
+            scanner.handle_book(book);
+        }
+
+        // Live trade does not change
+        assert_eq!(scanner.pending_trades, vec![]);
+        assert_eq!(scanner.live_trades, live_trade);
+        assert_eq!(scanner.completed_trades, vec![]);
+        assert_eq!(scanner.pnl, 0.0);
+        assert_eq!(scanner.updates, num_events);
+
+        // We exit the trade
+        let exit_trade = [
+            test_event(&quot;A&quot;, 100.0, 101.5, 1000),
+            test_event(&quot;B&quot;, 100.0, 101.0, 1100),
+        ];
+
+        num_events += exit_trade.len() as u64;
+
+        for book in exit_trade {
+            scanner.handle_book(book);
+        }
+
+        let completed_trade = vec![CompletedTrade {
+            short_exchange: &quot;B&quot;.into(),
+            long_exchange: &quot;A&quot;.into(),
+            amount: 1.0,
+            long_buy_price: 101.0,
+            long_sell_price: 101.5,
+            short_sell_price: 103.0,
+            short_buy_price: 100.0,
+            attempted_short_sell_price: 101.0,
+            attempted_long_buy_price: 100.0,
+        }];
+
+        assert_eq!(scanner.pending_trades, vec![]);
+        assert_eq!(scanner.live_trades, vec![]);
+        assert_eq!(scanner.completed_trades, completed_trade);
+        assert_eq!(scanner.pnl, 3.5);
+        assert_eq!(scanner.updates, num_events);
+    }
+}
+</code></pre>
+
+<p>Now live.rs:</p>
+<p><a href="images/ad7ed49aca21.png"><img alt="" src="images/dfccc8d9cb93.png" /></a></p>
+<pre class="codehilite"><code>use core::f64;
+
+use barter_data::{
+    exchange::{
+        binance::futures::BinanceFuturesUsd,
+        bybit::{futures::BybitServerPerpetualsUsd, Bybit},
+        okx::Okx,
+    },
+    streams::Streams,
+    subscription::book::OrderBooksL1,
+};
+use barter_integration::model::instrument::{kind::InstrumentKind, Instrument};
+use chrono::TimeDelta;
+use color_eyre::eyre::Result;
+use futures::StreamExt;
+// use tokio::try_join;
+use clap::Parser;
+use indexmap::IndexMap;
+use tracing_subscriber;
+
+use perpscan::PerpArbScanner;
+
+#[derive(Parser, Debug)]
+#[command(version = &quot;0.0&quot;, about = &quot;Perpetual arbitrage scanner&quot;)]
+pub struct Args {
+    #[arg(long = &quot;entry-threshold&quot;, short = 't', default_value_t = 1.0005)]
+    entry_threshold: f64,
+    #[arg(long = &quot;execution-latency&quot;, short = 'l', default_value_t = 500)]
+    execution_latency: u32,
+}
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;()&gt; {
+    let args = Args::parse();
+
+    color_eyre::install()?;
+    tracing_subscriber::fmt::init();
+
+    let books = Streams::&lt;OrderBooksL1&gt;::builder()
+        .subscribe([
+            (
+                BinanceFuturesUsd::default(),
+                &quot;core&quot;,
+                &quot;usdt&quot;,
+                InstrumentKind::Perpetual,
+                OrderBooksL1,
+            ),
+            (
+                BinanceFuturesUsd::default(),
+                &quot;eth&quot;,
+                &quot;usdt&quot;,
+                InstrumentKind::Perpetual,
+                OrderBooksL1,
+            ),
+        ])
+        .subscribe([
+            (Okx, &quot;core&quot;, &quot;usdt&quot;, InstrumentKind::Perpetual, OrderBooksL1),
+            (Okx, &quot;eth&quot;, &quot;usdt&quot;, InstrumentKind::Perpetual, OrderBooksL1),
+        ])
+        .subscribe([
+            (
+                Bybit::&lt;BybitServerPerpetualsUsd&gt;::default(),
+                &quot;core&quot;,
+                &quot;usdt&quot;,
+                InstrumentKind::Perpetual,
+                OrderBooksL1,
+            ),
+            (
+                Bybit::&lt;BybitServerPerpetualsUsd&gt;::default(),
+                &quot;eth&quot;,
+                &quot;usdt&quot;,
+                InstrumentKind::Perpetual,
+                OrderBooksL1,
+            ),
+        ])
+        .init()
+        .await?;
+
+    let mut books = books.join_map().await;
+    let mut scanners: IndexMap&lt;Instrument, PerpArbScanner&gt; = IndexMap::new();
+
+    let instruments = [
+        Instrument {
+            base: &quot;CORE&quot;.into(),
+            quote: &quot;USDT&quot;.into(),
+            kind: InstrumentKind::Perpetual,
+        },
+        Instrument {
+            base: &quot;ETH&quot;.into(),
+            quote: &quot;USDT&quot;.into(),
+            kind: InstrumentKind::Perpetual,
+        },
+    ];
+
+    for instrument in instruments {
+        scanners.insert(
+            instrument.clone(),
+            PerpArbScanner::new(
+                args.entry_threshold,
+                TimeDelta::milliseconds(args.execution_latency as i64),
+                IndexMap::default(),
+            ),
+        );
+    }
+
+    while let Some((_exchange, book)) = books.next().await {
+        if let Some(scanner) = scanners.get_mut(&amp;book.instrument) {
+            // info!(&quot;handling book {:?}&quot;, book);
+            scanner.handle_book(book);
+        }
+    }
+
+    Ok(())
+}
+</code></pre>
+
+<p>Now for data.rs:</p>
+<p><a href="images/9c105b7bd33e.png"><img alt="" src="images/2c883d9012a5.png" /></a></p>
+<pre class="codehilite"><code>use chrono::{DateTime, TimeDelta};
+use clap::Parser;
+use color_eyre::eyre::Result;
+use core::f64;
+use flate2::bufread::GzDecoder;
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
+use std::{fs::File, io::BufReader};
+use tracing::{info, warn};
+
+use barter_data::{
+    event::MarketEvent,
+    // exchange::ExchangeId,
+    subscription::book::{Level, OrderBookL1},
+};
+use barter_integration::model::{
+    instrument::{kind::InstrumentKind, symbol::Symbol, Instrument},
+    Exchange,
+};
+// use tracing::info;
+
+use perpscan::PerpArbScanner;
+
+#[derive(Parser, Debug)]
+#[command(version = &quot;0.0&quot;, about = &quot;Perpetual arbitrage scanner&quot;)]
+pub struct Args {
+    #[arg(long = &quot;entry-threshold&quot;, short = 'e', default_value_t = 1.0005)]
+    entry_threshold: f64,
+    #[arg(long = &quot;execution-latency&quot;, short = 'l', default_value_t = 500)]
+    execution_latency: u64,
+    #[arg(long = &quot;data-latency&quot;, short = 'j', default_value_t = 50)]
+    data_latency: u64,
+    #[arg(long = &quot;data-dir&quot;, short = 'i', default_value = &quot;.data&quot;)]
+    data_dir: String,
+    #[arg(long = &quot;asset&quot;, short = 'a')]
+    asset: String,
+    #[arg(long = &quot;date&quot;, short = 't', default_value = &quot;2024-01-01&quot;)]
+    date: String,
+    // #[arg(long = &quot;seed&quot;, short = 'r', default_value_t = 12345)]
+    // seed: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, PartialOrd)]
+pub struct Row {
+    local_timestamp: i64,
+    timestamp: i64,
+    exchange: String,
+    symbol: String,
+    ask_amount: f64,
+    ask_price: f64,
+    bid_amount: f64,
+    bid_price: f64,
+}
+
+impl Row {
+    pub fn from_res&lt;E&gt;(r: Result&lt;Row, E&gt;) -&gt; Option&lt;Row&gt; {
+        r.ok()
+    }
+
+    pub fn into_event(
+        self,
+        instrument: Instrument,
+        latency: u64,
+    ) -&gt; Option&lt;MarketEvent&lt;Instrument, OrderBookL1&gt;&gt; {
+        Some(MarketEvent {
+            exchange_time: DateTime::from_timestamp_micros(self.timestamp)?,
+            received_time: DateTime::from_timestamp_micros(self.timestamp + latency as i64 * 1000)?,
+            exchange: Exchange::from(self.exchange),
+            instrument,
+            kind: OrderBookL1 {
+                last_update_time: DateTime::from_timestamp_micros(self.timestamp)?,
+                best_bid: Level {
+                    price: self.bid_price,
+                    amount: self.bid_amount,
+                },
+                best_ask: Level {
+                    price: self.ask_price,
+                    amount: self.ask_amount,
+                },
+            },
+        })
+    }
+}
+
+fn main() -&gt; Result&lt;()&gt; {
+    let args = Args::parse();
+
+    color_eyre::install()?;
+    tracing_subscriber::fmt::init();
+
+    let mut scanner = PerpArbScanner::new(
+        args.entry_threshold,
+        TimeDelta::milliseconds(args.execution_latency as i64),
+        IndexMap::default(),
+    );
+
+    let mut sources = Vec::new();
+
+    // let rng = Rc::new(RefCell::new(Xoshiro256PlusPlus::seed_from_u64(args.seed)));
+    let from_res = Row::from_res;
+
+    let bybit_path = format!(
+        &quot;{}/bybit/Futures/{}USDT/quotes/bybit_quotes_{}_{}USDT.csv.gz&quot;,
+        args.data_dir, args.asset, args.date, args.asset
+    );
+
+    if let Ok(bybit_data) = File::open(&amp;bybit_path) {
+        sources.push(
+            csv::Reader::from_reader(GzDecoder::new(BufReader::new(bybit_data)))
+                .into_deserialize()
+                .filter_map(from_res.clone()),
+        );
+    } else {
+        warn!(&quot;No data found for Bybit at {bybit_path}&quot;);
+    }
+
+    let okex_path = format!(
+        &quot;{}/okex-swap/Futures/{}-USDT-SWAP/quotes/okex-swap_quotes_{}_{}-USDT-SWAP.csv.gz&quot;,
+        args.data_dir, args.asset, args.date, args.asset
+    );
+
+    if let Ok(okex_data) = File::open(&amp;okex_path) {
+        sources.push(
+            csv::Reader::from_reader(GzDecoder::new(BufReader::new(okex_data)))
+                .into_deserialize()
+                .filter_map(from_res.clone()),
+        );
+    } else {
+        warn!(&quot;No data found for OKEx at {okex_path}&quot;);
+    }
+
+    let binance_path = format!(
+        &quot;{}/binance-futures/Futures/{}USDT/quotes/binance-futures_quotes_{}_{}USDT.csv.gz&quot;,
+        args.data_dir, args.asset, args.date, args.asset
+    );
+
+    if let Ok(binance_data) = File::open(&amp;binance_path) {
+        sources.push(
+            csv::Reader::from_reader(GzDecoder::new(BufReader::new(binance_data)))
+                .into_deserialize()
+                .filter_map(from_res.clone()),
+        );
+    } else {
+        warn!(&quot;No data found for Binance at {binance_path}&quot;);
+    }
+
+    let gateio_path = format!(
+        &quot;{}/gate-io-futures/Futures/{}_USDT/quotes/gate-io-futures_quotes_{}_{}_USDT.csv.gz&quot;,
+        args.data_dir, args.asset, args.date, args.asset
+    );
+
+    if let Ok(gateio_data) = File::open(&amp;gateio_path) {
+        sources.push(
+            csv::Reader::from_reader(GzDecoder::new(BufReader::new(gateio_data)))
+                .into_deserialize()
+                .filter_map(from_res.clone()),
+        );
+    } else {
+        warn!(&quot;No data found for Gate.io at {gateio_path}&quot;);
+    }
+
+    info!(&quot;deserializing {} sources&quot;, sources.len());
+
+    let start = chrono::Utc::now();
+
+    let asset = args.asset.clone();
+
+    let to_event = move |row: Row| {
+        row.into_event(
+            Instrument {
+                base: Symbol::from(asset.clone()),
+                quote: Symbol::from(&quot;USDT&quot;),
+                kind: InstrumentKind::Perpetual,
+            },
+            args.data_latency,
+        )
+    };
+
+    let data = itertools::kmerge(sources).filter_map(to_event);
+
+    let mut count: usize = 0;
+
+    for book in data {
+        // if count % 10000 == 0 {
+        //     info!(&quot;processed {} events; sample: {book:?}&quot;, count);
+        // }
+        scanner.handle_book(book);
+        count += 1;
+    }
+
+    let end = chrono::Utc::now();
+
+    let elapsed = end - start;
+
+    info!(
+        &quot;processed {} events in {} ({} events/s)&quot;,
+        count,
+        elapsed,
+        1000000.0 * count as f64 / elapsed.num_microseconds().unwrap() as f64
+    );
+
+    info!(&quot;scanner state : {:#?}&quot;, scanner);
+
+    Ok(())
+}
+</code></pre>
+</article>
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Alpha - Practical Bits</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Sentiment Alpha - Practical Bits</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-09-21</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/sentiment-alpha-practical-bits</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Exploring how to find alpha using sentiment analysis</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Introduction</h3>
+<hr />
+<p>With the recent introduction of high-powered LLMs, detailed sentiment analysis has never been more accessible to researchers with little more than a prompt and an API call. Of course, these methods are slow and expensive, so we will explore the whole universe of tools and, more importantly, detail how to find the right data to analyse. </p>
+<p>This is merely a fun article of my own experiments.</p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Data Sources</p>
+<ol>
+<li>
+<p>Tiingo</p>
+</li>
+<li>
+<p>Twitter</p>
+</li>
+<li>
+<p>Reddit</p>
+</li>
+<li>
+<p>Where To Find Alpha</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Analysis</p>
+<ol>
+<li>
+<p>TextBlob</p>
+</li>
+<li>
+<p>Contains</p>
+</li>
+<li>
+<p>LLMs</p>
+<ol>
+<li>
+<p>Llama</p>
+</li>
+<li>
+<p>CheapGPT</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Prompting LLMs</p>
+</li>
+</ol>
+</li>
+</ol>
+<h3>Data Sources</h3>
+<hr />
+<p>Acquiring the right data is the difference between profitability and a waste of time. In most resources, you get the basic analysis of some news articles and <em>maybe</em> a couple of tweets. This will not be one of those articles. I may not build a complete scraping pipeline, but I won’t shy away from where there is worthwhile sentiment.</p>
+<h4>Tiingo News Data</h4>
+<hr />
+<p>In addition to being absurdly cheap at only $30 a month, Tiingo also offers an excellent API for news data. I’ve coded up their API into a Python class for us to use, and we’ll be using this for all of our scraping:</p>
+<p><a href="images/1e627edda7a9.png"><img alt="" src="images/07f79f3cf010.png" /></a></p>
+<pre class="codehilite"><code>import requests
+from typing import List, Optional
+
+class TiingoData:
+    def __init__(self, api_token: str):
+        self.api_token = api_token
+        self.base_url = &quot;https://api.tiingo.com/tiingo&quot;
+        self.news_ext = &quot;/news&quot;
+        self.headers = {'Content-Type': 'application/json'}
+
+    def get_bulk_download_list(self):
+        url = f&quot;{self.base_url}{self.news_ext}/bulk_download?token={self.api_token}&quot;
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+    def download_batch_file(self, file_id: str):
+        url = f&quot;{self.base_url}{self.news_ext}/bulk_download/{file_id}?token={self.api_token}&quot;
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.content
+
+    def get_latest_news(self, 
+                        tickers: Optional[List[str]] = None, 
+                        tags: Optional[List[str]] = None,
+                        start_date: Optional[str] = None,
+                        end_date: Optional[str] = None,
+                        limit: int = 100,
+                        offset: int = 0,
+                        sort_by: str = &quot;publishedDate&quot;
+                        ):
+
+        params = {
+            'token': self.api_token,
+            'limit': limit,
+            'offset': offset,
+            'sortBy': sort_by
+        }
+        if tickers:
+            params['tickers'] = ','.join(tickers)
+        if tags:
+            params['tags'] = ','.join(tags)
+        if start_date:
+            params['startDate'] = start_date
+        if end_date:
+            params['endDate'] = end_date
+
+        response = requests.get(
+            self.base_url + self.news_ext,
+            headers=self.headers,
+            params=params
+        )
+        response.raise_for_status()
+        return response.json()
+</code></pre>
+
+<p>As we can see below, getting the latest news involving BTC is relatively easy:</p>
+<p><a href="images/1993e1e4a274.png"><img alt="" src="images/07fc0eccc20b.png" /></a></p>
+<h4>Twitter</h4>
+<hr />
+<p>Using Twitter normally requires us to use the Twitter API, and that’s still an option if we are a particularly well-funded enterprise and need the lowest latency possible. However, markets tend not to react instantly to Twitter news, so a second of latency isn’t much of a problem. </p>
+<p>Hence, we will look at using RapidAPI for our implementation. </p>
+<p><a href="images/d8134d4a2c14.png"><img alt="" src="images/21fd775ca38a.png" /></a></p>
+<pre class="codehilite"><code>import requests
+from datetime import datetime as dt, timedelta
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+class TwitterScraper:
+    def __init__(self, 
+                 api_key: str,
+                 ):
+
+        self.api_key = api_key
+        self.base_url = &quot;https://twitter154.p.rapidapi.com/user/tweets&quot;
+        self.headers = {
+            &quot;x-rapidapi-key&quot;: self.api_key,
+            &quot;x-rapidapi-host&quot;: &quot;twitter154.p.rapidapi.com&quot;
+        }
+
+    def _get_tweets(self, 
+                    username: str,
+                    start_date: str,
+                    end_date: str,
+                    continuation_token: str = None,
+                    include_replies: bool = False,
+                    ):
+
+        url = self.base_url if continuation_token is None else f&quot;{self.base_url}/continuation&quot;
+
+        querystring = {
+            &quot;username&quot;: username,
+            &quot;limit&quot;: &quot;100&quot;,
+            &quot;include_replies&quot;: &quot;true&quot; if include_replies else &quot;false&quot;
+        }
+
+        if continuation_token:
+            querystring[&quot;continuation_token&quot;] = continuation_token
+
+        response = requests.get(url, headers=self.headers, params=querystring)
+        data = response.json()
+
+        if 'results' not in data:
+            print(f&quot;Error fetching tweets for {username}: {data.get('message', 'Unknown error')}&quot;)
+            return {'results': []}
+
+        return data
+
+    def scrape_tweets(self, 
+                      username: str,
+                      start_date: str,
+                      end_date: str,
+                      include_replies: bool = False,
+                      ):
+
+        start_date = dt.strptime(start_date, &quot;%Y-%m-%d&quot;)
+        end_date = dt.strptime(end_date, &quot;%Y-%m-%d&quot;)
+
+        all_tweets = []
+        continuation_token = None
+
+        while True:
+            data = self._get_tweets(
+                username=username,
+                start_date=start_date,
+                end_date=end_date,
+                continuation_token=continuation_token,
+                include_replies=include_replies,
+            )
+
+            for tweet in data['results']:
+                tweet_date = dt.strptime(tweet['creation_date'], &quot;%a %b %d %H:%M:%S %z %Y&quot;)
+                if start_date &lt;= tweet_date.replace(tzinfo=None) &lt;= end_date:
+                    all_tweets.append(tweet)
+                elif tweet_date.replace(tzinfo=None) &lt; start_date:
+                    return all_tweets
+
+            if 'continuation_token' in data:
+                continuation_token = data['continuation_token']
+            else:
+                break
+
+            # To avoid hitting rate limits we add this sleep
+            time.sleep(1)
+
+        return all_tweets
+
+    def get_latest_tweets(self, 
+                          usernames: str,
+                          last_check_time: str = None,
+                          lookback_if_no_check: int = 7,
+                          ):
+
+        if last_check_time is None:
+            last_check_time = dt.now() - timedelta(days=lookback_if_no_check)
+
+        def fetch_user_tweets(username: str):
+            data = self._get_tweets(username, None, None)
+            new_tweets = []
+            for tweet in data['results']:
+                tweet_date = dt.strptime(tweet['creation_date'], &quot;%a %b %d %H:%M:%S %z %Y&quot;)
+                if tweet_date.replace(tzinfo=None) &gt; last_check_time:
+                    new_tweets.append(tweet)
+                else:
+                    break
+            return (username, new_tweets)
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(fetch_user_tweets, username) for username in usernames]
+            results = {}
+            for future in as_completed(futures):
+                try:
+                    username, tweets = future.result()
+                    results[username] = tweets
+                except Exception as e:
+                    print(f&quot;Error processing tweets: {str(e)}&quot;)
+
+        return results
+</code></pre>
+
+<p>Let’s try scraping DBs tweets:</p>
+<p><a href="images/54f5b10a987a.png"><img alt="" src="images/a08e125c681a.png" /></a></p>
+<p>Now, we can parse these tweets with some Regex:</p>
+<p><a href="images/322e762e8d65.png"><img alt="" src="images/e0ae722c4d37.png" /></a></p>
+<p>Code here:</p>
+<pre class="codehilite"><code>import re
+
+def parse_db_tweet(tweet):
+    text = tweet[1] if len(tweet) &gt; 1 else &quot;&quot;
+
+    # Initialize source and coins
+    source = None
+    coins = []
+
+    # Check if the tweet is not just a URL
+    if not text.startswith('http'):
+        # Extract source and coins using regex
+        source_match = re.search(r'Source:\s*(\[?DB\]?)', text)
+        coins_match = re.search(r'Coins:\s*([\w\s,]+)', text)
+
+        if source_match:
+            source = source_match.group(1).strip('[]')
+
+        if coins_match:
+            coins = [coin.strip() for coin in coins_match.group(1).split(',')]
+
+    return {
+        'date': tweet[0],
+        'text': text,
+        'source': source,
+        'coins': coins
+    }
+</code></pre>
+
+<p>This then gives us the following output:</p>
+<p><a href="images/43137ef113c3.png"><img alt="" src="images/35a1b7e1208f.png" /></a></p>
+<p>We now have a dataset of current news events that can be used for news data. Better yet, we can parse the images with OCR to extract the text and expand our ability to work with the data.</p>
+<h4>Reddit</h4>
+<hr />
+<p>Reddit has become quite heavily scraped in recent times, but alpha still remains, especially for digital assets where the markets are far less efficient. In equities markets, that is much less the case, but in crypto, there still is a remaining degree of edge. </p>
+<p>Reddit offers a free API, but it has a limit. This isn’t too much of a problem, but it means we will need to rotate keys. You can create up to 3 per account, so with the creation of a few additional accounts, you can quickly gather enough scraping capacity. </p>
+<p>If we want <em>all</em> of the posts, then we need to get a bit more creative because the Reddit API only offers to show us these three options:</p>
+<ol>
+<li>
+<p>Top</p>
+</li>
+<li>
+<p>New</p>
+</li>
+<li>
+<p>Hot</p>
+</li>
+</ol>
+<p>It’s a great filter that saves us time, but if we want the data for all of Superstonk, we’ll need to scrape better. Hence, we can implement RapidAPI for this. We won’t be implementing RapidAPI, only the main Reddit one, but you can follow the previous Twitter example for a rough idea of how RapidAPI works.</p>
+<p><a href="images/f02f5e935bc4.png"><img alt="" src="images/477cfb3b06f5.png" /></a></p>
+<pre class="codehilite"><code>import logging
+import json
+import boto3
+import praw
+from datetime import datetime
+from botocore.exceptions import ClientError
+import time
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class RedditScraper:
+    def __init__(self, secret_name='reddit_api_keys'):
+        self.secret_name = secret_name
+        self.reddit = None
+        self.initialize_reddit_client()
+
+    def get_secret(self):
+        &quot;&quot;&quot;Retrieve secrets from AWS Secrets Manager.&quot;&quot;&quot;
+        client = boto3.client('secretsmanager')
+        try:
+            response = client.get_secret_value(SecretId=self.secret_name)
+            return json.loads(response['SecretString'])
+        except ClientError as e:
+            logger.error(f&quot;Error retrieving secret: {e}&quot;)
+            raise
+
+    def initialize_reddit_client(self):
+        &quot;&quot;&quot;Initialize the Reddit client with API credentials.&quot;&quot;&quot;
+        secret = self.get_secret()
+        self.reddit = praw.Reddit(
+            client_id=secret['client_id'],
+            client_secret=secret['client_secret'],
+            user_agent=secret['user_agent']
+        )
+
+    def rotate_keys(self):
+        &quot;&quot;&quot;Rotate API keys when rate limit is hit.&quot;&quot;&quot;
+        logger.info(&quot;Rotating API keys...&quot;)
+        self.initialize_reddit_client()
+
+    def scrape_posts(self, subreddit_name, post_type='new', limit=10):
+        &quot;&quot;&quot;
+        Scrape posts from a specified subreddit.
+
+        :param subreddit_name: Name of the subreddit to scrape
+        :param post_type: Type of posts to scrape ('new', 'hot', or 'top')
+        :param limit: Number of posts to scrape
+        :return: List of dictionaries containing post data
+        &quot;&quot;&quot;
+        subreddit = self.reddit.subreddit(subreddit_name)
+
+        if post_type == 'new':
+            posts = subreddit.new(limit=limit)
+        elif post_type == 'hot':
+            posts = subreddit.hot(limit=limit)
+        elif post_type == 'top':
+            posts = subreddit.top(limit=limit)
+        else:
+            raise ValueError(&quot;Invalid post_type. Choose 'new', 'hot', or 'top'.&quot;)
+
+        scraped_posts = []
+        for post in posts:
+            try:
+                post_data = {
+                    'id': post.id,
+                    'title': post.title,
+                    'text': post.selftext,
+                    'author': str(post.author),
+                    'score': post.score,
+                    'created_utc': datetime.fromtimestamp(post.created_utc).isoformat(),
+                    'num_comments': post.num_comments,
+                    'url': post.url
+                }
+                scraped_posts.append(post_data)
+            except praw.exceptions.RedditAPIException as e:
+                if e.error_type == &quot;RATELIMIT&quot;:
+                    logger.warning(&quot;Rate limit hit. Rotating keys...&quot;)
+                    self.rotate_keys()
+                    continue
+                else:
+                    logger.error(f&quot;Error scraping post {post.id}: {e}&quot;)
+
+        return scraped_posts
+
+    def scrape_subreddit(self, subreddit_name, post_types=['new', 'hot', 'top'], limit=10):
+        &quot;&quot;&quot;
+        Scrape posts from a subreddit for multiple post types.
+
+        :param subreddit_name: Name of the subreddit to scrape
+        :param post_types: List of post types to scrape
+        :param limit: Number of posts to scrape for each type
+        :return: Dictionary with post types as keys and lists of posts as values
+        &quot;&quot;&quot;
+        results = {}
+        for post_type in post_types:
+            results[post_type] = self.scrape_posts(subreddit_name, post_type, limit)
+        return results
+</code></pre>
+
+<p>Which we can use with the cell below:</p>
+<p><a href="images/6364c6eeeb7b.png"><img alt="" src="images/0e6d9f970ce8.png" /></a></p>
+<h4>Where To Find Alpha</h4>
+<hr />
+<p>In our quest for alpha, we have two approaches. We need to compile a large-scale dataset of data that has not been heavily analyzed yet, or we must find our alpha by analyzing existing data that is already freely available but in great detail.</p>
+<p>This is the difference between checking to see if Elon has talked about DOGE and reacting rapidly - where we put a lot of work into analyzing a very small amount of data (either through our reaction time like in this case or with great detail to it like analyzing tier10k’s account for news releases) OR on the contrary we could be looking at Reddit’s sentiment overall on a particular set of stocks.</p>
+<p>I already have an article on the theory of what works and what doesn’t work when it comes to sentiment data. Today, we will focus on the practical elements of actually using this data.</p>
+<p>For a brief list of places you can go to look for alpha:</p>
+<ol>
+<li>
+<p>LinkedIn (analyzing headcounts, and statistics about employees)</p>
+</li>
+<li>
+<p>Glassdoor (analyzing reviews on culture to build culture factors)</p>
+</li>
+<li>
+<p>Yelp (reviews about the quality of the service, etc - sudden declines may be a sell signal)</p>
+</li>
+<li>
+<p>Reddit (sentiment and trend following)</p>
+</li>
+<li>
+<p>Twitter (same as Reddit)</p>
+</li>
+<li>
+<p>Tiktok (again, the same, but this may require OCR onto the videos to extract text)</p>
+</li>
+<li>
+<p>Instagram (similar story to TikTok where we can follow investment pages and extract the text)</p>
+</li>
+<li>
+<p>Telegram (bots inside of pump and dump / signal servers can provide us alpha if we frontrun retail flow)</p>
+</li>
+<li>
+<p>Discord (similar story here)</p>
+</li>
+<li>
+<p>Zillow (for home builder stocks / REIT trading)</p>
+</li>
+</ol>
+<h3>Analysis</h3>
+<hr />
+<p>In this section, we’ll walk through a few ways to extract critical information from tweets.</p>
+<h4>TextBlob</h4>
+<hr />
+<p>Here is a basic sentiment analyzer. Sadly, it doesn’t appear to work very well, so hence we’ll move onto the next section. It is extremely fast and does have some applications that it makes sense for:</p>
+<pre class="codehilite"><code>from textblob import TextBlob
+
+class SentimentAnalyzer:
+    @staticmethod
+    def analyze(text):
+        blob = TextBlob(text)
+        polarity = blob.sentiment.polarity
+        if polarity &gt; 0:
+            sentiment = &quot;Positive&quot;
+        elif polarity &lt; 0:
+            sentiment = &quot;Negative&quot;
+        else:
+            sentiment = &quot;Neutral&quot;
+        return {
+            &quot;sentiment&quot;: sentiment,
+            &quot;polarity&quot;: polarity
+        }
+</code></pre>
+
+<h4>Contains</h4>
+<hr />
+<p>This one is straightforward; we must check if someone has mentioned a word or ticker. Merely a large account with many followers mentioning a ticker (which on Twitter can be specifically typed with a dollar sign in front) is very bullish news. This is very easy to scan for.</p>
+<p>We don’t even need to run sentiment on it, as we can trade a momentum breakout strategy off of it and ride the move. </p>
+<h4>LLMs</h4>
+<hr />
+<p><strong>Llama3:</strong></p>
+<p>We have a few options when it comes to LLMs. If we value running speed, we can locally host an LLM. Llama3 is one of our best options here. It will be fast if we run it on very powerful hardware and use a smaller model, but it will also be expensive because we are going to need some very high-quality hardware. It’ll sit dormant most of the time, so perhaps we will want to optimize this in AWS.</p>
+<p><strong>CheapGPT:</strong></p>
+<p>If, instead, we value extremely low costs, then we can use RapidAPI or, again, a locally hosted model. Locally, hosting is cheap if we need to process a lot of data because it averages out. Still, there’s a sneaky workaround to get extremely cheap processing done on a lot of data by using a high-quality model like ChatGPT 4. </p>
+<p><a href="images/1e58c1e2e271.png"><img alt="" src="images/7cd56b233561.png" /></a></p>
+<p>This RapidAPI [<a href="https://rapidapi.com/rphrp1985/api/chatgpt-42">https://rapidapi.com/rphrp1985/api/chatgpt-42</a>] effectively puts a scraper on top of a regular ChatGPT Plus user, and since for the monthly price you pay, the amount of prompts you can do is effectively unlimited - it allows for much cheaper access to ChatGPT 4.0 as well as many other LLMs. It works out to be roughly 100x cheaper than the API. </p>
+<p><a href="images/57ef5ff440dd.png"><img alt="" src="images/497a09ee5cb4.png" /></a></p>
+<h4>Prompting</h4>
+<hr />
+<p>Prompting the LLM is an important skill here, as we need to get the right information out of the LLM. Here are a few key things to add:</p>
+<p>First, define the role of the LLM:</p>
+<pre class="codehilite"><code>You are a sentiment classifier for tweets about cryptocurrencies. You should make judgements solely based on how the news will affect the current price of the related coins.
+</code></pre>
+
+<p>Second, we need to ensure that we do not acknowledge the task in the response, it needs to follow the right output:</p>
+<pre class="codehilite"><code>For an example of what NOT to do:
+&quot;Sure, here's the sentiment of the post: Positive&quot;
+For an example of what to do:
+&quot;Positive&quot;
+</code></pre>
+
+<p>Third, we want to outline a response format:</p>
+<pre class="codehilite"><code>Respond with &quot;Ignore&quot;, &quot;Positive&quot;, or &quot;Negative&quot; based on your assessment of it's impact. Ignore should be used when the information is irrelevant to market prices or if the effect will be neutral.
+</code></pre>
+
+<p>Modifying the above, we can have a prefix of our strength:</p>
+<pre class="codehilite"><code>Your responses should follow the below format:
+&quot;&lt;strength&gt; &lt;sentiment&gt;&quot;
+
+Strength can be any of [&quot;Weak&quot;, &quot;Medium&quot;, &quot;Strong&quot;, &quot;Extreme&quot;, &quot;NULL&quot;]
+
+... Outline the sentiment part as shown in the above blob ...
+
+If sentiment is Ignore, the strength should be NULL. Do not use NULL if the sentiment is not Ignore.
+</code></pre>
+
+<p>You may want to have filters for promotions. Tier10k often promotes his own website, so we want to make sure that the LLM is aware of this:</p>
+<pre class="codehilite"><code>Always respond with &quot;Ignore&quot; if the tweet promotes the account's own website or does not relate to news.
+</code></pre>
+
+<p>You may want to leave examples:</p>
+<pre class="codehilite"><code>Input &gt;&gt; &quot;Elon Musk will be speaking at DogeConference2024&quot;
+Response &gt;&gt; &quot;Strong Positive&quot;
+</code></pre>
+
+<p>If you are really into tuning the LLM to get the amount of sentiment specificity you want, then you can fine-tune with a dataset of hand-labelled tweets (perhaps by investigating the actual impact on the price of the news and going from there—this requires that the news be very impactful, or it won’t have the determinism necessary to be useful).</p>
+</article>
+</body>
+</html>

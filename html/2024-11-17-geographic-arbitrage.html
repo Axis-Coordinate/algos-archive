@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geographic Arbitrage</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Geographic Arbitrage</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-11-17</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/geographic-arbitrage</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>An operational edge that requires you to get down and dirty in the weeds of it</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/6e3d95077d9e.jpeg"><img alt="" src="images/a9474cefd225.jpeg" /></a></p>
+<h3>Introduction</h3>
+<hr />
+<blockquote>
+<p>“Maybe the real small trader alpha is just not having a compliance department” - Quant Arb to WorstContrarian via Twitter</p>
+</blockquote>
+<p>There are many kinds of edges, but one of the most defendable edges is an operational edge. Effectively, your edge comes from the fact that doing the trade is a lot of work. Who wants to make friends with local bankers in Türkiye? Very few is the answer.</p>
+<p>This is a niche that can hit quite a bit of scale, and as a result is an area me and my team spent a fair few months looking into (about 2 years ago) so today let’s talk a bit about the trade and it’s core details.</p>
+<p>Geographic arbitrages move money between local and international markets for a currency.</p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>How the trade works</p>
+</li>
+<li>
+<p>Where it works</p>
+</li>
+<li>
+<p>Bribes &amp; Smuggling</p>
+</li>
+<li>
+<p>Getting money out of Türkiye</p>
+</li>
+<li>
+<p>Liquidity maximization</p>
+</li>
+<li>
+<p>Price Effects</p>
+</li>
+</ol>
+<h3>How the trade works</h3>
+<hr />
+<p>Let’s take the example of the Turkish Lira. We start with USD, or another highly liquid and easily transferable currency (JPY, EUR, GBP). The imbalance is typically created via a mass exodus from a certain currency to liquid international currencies so in basically every case we will be selling into international markets and buying local markets.</p>
+<p><a href="images/87b8fe32fe51.png"><img alt="" src="images/f9d5202dda73.png" /></a></p>
+<p>We move our USD to local Turkish exchanges and then trade for TRY, we then transfer the TRY out of the country to a liquid international FX exchange such as LMAX and convert TRY back to USD. </p>
+<p>We can optimize this by using cryptocurrencies. Instead of starting with USD, we start with USDT, BTC, ETH, or any combination of popular liquid cryptocurrencies. We then send these directly to BTCTurk, a popular Turkish crypto exchange. We can then convert this into TRY on exchange, withdraw it, transfer to LMAX, convert to USD, move to Binance or a liquid crypto exchange and convert back to crypto. We may also prefer to use an OTC dealer that can convert TRY directly to crypto. We end up with a roughly 1-2% profit per cycling of our capital through this trade.</p>
+<p>Many locals will use crypto exchanges to move money out of the country as it provides a liquid conversion to a currency (crypto) that the government cant prevent them from transferring out of the country. It typically has a stronger imbalance as a result, not to mention that the cycle time is faster since getting your crypto into BTCTurk is almost instant.</p>
+<p>You may end up stuck in the local currency for a bit of time, likely the longest time out of all currencies, and there is a price risk with this because these currencies tend to be declining in value rapidly so hence it is often wise to look at putting on a swap hedge to cover yourself there. This way you can also check your APR is better than the cost of holding the short position because there will be a heavy carry cost here.</p>
+<p>On top of this, you may use leverage as a way to improve the APR of the strategy.</p>
+<h3>Where it works</h3>
+<hr />
+<p>This typically works in places where there is both restrictions (official or unofficial) on transfers of the currency out of the country, paired with enough demand to move currency offshore from the locals. Here are some examples:</p>
+<ol>
+<li>
+<p>India (INR)</p>
+</li>
+<li>
+<p>South Korea (KRW)</p>
+</li>
+<li>
+<p>Brazil (BRL)</p>
+</li>
+<li>
+<p>Türkiye (TRY)</p>
+</li>
+<li>
+<p>Ukraine (UAH)</p>
+</li>
+<li>
+<p>Russia (RUB)</p>
+</li>
+<li>
+<p>Nigeria (NGN)</p>
+</li>
+</ol>
+<p>You then need to find their local crypto exchange and get hold of an account. This part can get tricky as it often requires bringing on a local who allows you to use their account.</p>
+<p>For extremely high APR versions of this trade you end up trading currencies of countries currently at war. Things get risky on the legal side past this point…</p>
+<p><a href="images/4e5ef02d741a.png"><img alt="" src="images/18c4d28287c6.png" /></a></p>
+<h3>Bribes &amp; Smuggling</h3>
+<hr />
+<p>Russia and Ukraine it is flat out illegal to do. People smuggle the money out with mules because the premium is &gt;20% per cycle. </p>
+<p>Nigeria had 40% difference when I last looked, but to put any meaningful size through the trade you’d need to pay-out significant bribes to government officials.</p>
+<p>These trades start getting really murky for the higher APR trades.</p>
+<p>Even for currencies where there are no official restrictions, it just isn’t easy, such as Türkiye, there is still major problems with others paying out bribes.</p>
+<p>I think it goes without saying that I do not condone bribery and have always attempted these sorts of trades the legal way.</p>
+<h3>Getting money out of Türkiye</h3>
+<hr />
+<p>Setting up the local entity as a liaison office worked best for Türkiye with large international banks such as HSBC being the least likely to attempt to prevent you from transferring internationally.</p>
+<p>If you do this trade enough, the government will send you a letter which basically says “we think you are doing money laundering”. From my understanding of the trade from others who ran it - this is basically an empty threat used to scare people off from running the strategy. </p>
+<p>There are no actual laws in Türkiye that prevent you from running this strategy in Türkiye after all, but that doesn’t mean they wont try to stop you.</p>
+<h3>Liquidity Maximization</h3>
+<hr />
+<p>The liquidity on most of these local crypto exchanges is generally relatively poor. To maximize the amount of capital that can be cycled you’ll need to market make one side of the book and VWAP into the position. </p>
+<p>For the other legs it is relatively liquid so a simple execution strategy is fine.</p>
+<h3>Price Effects</h3>
+<hr />
+<p>Often it is too expensive to actually go and convert between the markets, but it still produces many exploitable effects. One is the seasonality that happens in the spread between bank hours and non-bank hours for the USD/TRY spread internationally vs on Binance. I.e. USD/TRY on Binance vs USDT/TRY on Binance. The difference blows out to about double it’s usual during non-bank hours, and then gets tighter. This seasonality can be exploited for small profits.</p>
+<p><a href="images/8b163b635e76.png"><img alt="" src="images/119debb7d0fa.png" /></a></p>
+<p><a href="images/c1e1e19dc885.png"><img alt="" src="images/df03392437fa.png" /></a></p>
+<p>This assumes we can transfer between the two:</p>
+<p><a href="images/163a87e864a1.png"><img alt="" src="images/edbd8d62e863.png" /></a></p>
+<p>This simply assumes we trade the seasonality:</p>
+<p><a href="images/43a85ccf1100.png"><img alt="" src="images/d00089a6eed2.png" /></a></p>
+<p><a href="images/713622a71334.png"><img alt="" src="images/46b54689db3f.png" /></a></p>
+<p>There also appears to be a relationship between large shocks in BTC-USDT on Binance and USDT-TRY on Binance. Likely driven by flow from other traders arbing.</p>
+</article>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Election Cycle Seasonality Effects</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Election Cycle Seasonality Effects</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-02-26</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/election-cycle-seasonality-effects</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Uncovering the election risk premium across the globe (CODE INCLUDED)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<p>Elections can be a large driver of variance for many countries. As a result of this, there exists a risk premium around elections that we will research in this article. This is an effect that has been documented by others (papers at the end), but I thought I would do my own research on the topic using my own approach. It is likely similar to other methodologies, but the methodology I came up with was entirely freestyle so it is somewhat original. This article includes the code needed to replicate it as a special treat. Nobody is allowed to comment on the quality of my code, it runs so it is fine.</p>
+<p>If you enjoy the content please consider subscribing to the newsletter. I’ve decided to make this one free since it wasn’t part of my previously planned articles / comes with an off-topic article that was also free (would be a tease otherwise).</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h4>Sections</h4>
+<ol>
+<li>
+<p>Methodology</p>
+</li>
+<li>
+<p>Data</p>
+</li>
+<li>
+<p>Trade Simulation</p>
+</li>
+<li>
+<p>Results</p>
+</li>
+<li>
+<p>Further Improvements</p>
+</li>
+<li>
+<p>Alternative Methodologies</p>
+</li>
+<li>
+<p>Implementation Guidance</p>
+</li>
+<li>
+<p>Conclusion</p>
+</li>
+<li>
+<p>References</p>
+</li>
+</ol>
+<h4>Methodology</h4>
+<p>I won’t dive too deep into the logic I went with as readers will see it as I walk through the code, but I do want to discuss the idea I decided on before conducting research. </p>
+<p>It is incredibly important to come up with your hypothesis BEFORE you start testing. Sometimes you are just looking to see if an effect exists, and that is fine, but it is wise to try and write some notes on what you expect to see, and some fundamentals as to why. If you explore the data before you have a strategy idea outlined, that is also fine (as long as you keep it exploratory), but you should sit down after this step and try to design your strategy with both the results and fundamental ideas as your guides.</p>
+<p>If your logic fails to generate alpha you should sit down and do this step again before running another backtest, otherwise you will overfit.</p>
+<p>In this article, we will use ETFs that capture the market return for different countries. These will be the assets our prices are coming from in the below logic.</p>
+<p>Briefly explaining the logic:</p>
+<ol>
+<li>
+<p>Take the first day of the month the election occurs on. Use the most common month between states/constituencies since some will vote early.</p>
+</li>
+<li>
+<p>Record the close price of the respective ETF for this day. If this day falls on a weekend/holiday, use the nearest date prior to this day where the market is open (and prices are available for).</p>
+</li>
+<li>
+<p>Do this again, but add 30 days to the 1st of the month date to get the close price for when we exit the trade.</p>
+</li>
+<li>
+<p>Generate average 1-month returns for each ETF, and then weight these returns by the % of trades that used this ETF. Sum up the values to get your participation weighted average return which we can use as our benchmark.</p>
+</li>
+<li>
+<p>Generate the average return for our trades. This is roughly a 1-month trade, hence the use of monthly average returns as our benchmark.</p>
+</li>
+<li>
+<p>Compare these numbers. If they are significantly different then you get to make a backtest. </p>
+</li>
+</ol>
+<p>Whilst my results warranted a backtest based on this logic, I did not produce one. The aim of these articles is to educate readers about the research process, not to hand out strategies - that part is up to you. This strategy trades infrequently and is well-known, but I think we can still find many ways to improve it.</p>
+<h4>Data</h4>
+<p>I took a fair few of these tickers from one of the QuantConnect example strategies that looked at momentum in countries’ ETFs. I did also add quite a few on my own. The list is shared below.</p>
+<pre class="codehilite"><code>country_tickers =  [&quot;EWJ&quot;,  # iShares MSCI Japan Index ETF
+                    &quot;EFNL&quot;, # iShares MSCI Finland Market Index ETF
+                    &quot;EWW&quot;,  # iShares MSCI Mexico Inv. Mt. Idx
+                    &quot;ERUS&quot;, # iShares MSCI Russia ETF
+                    &quot;IVV&quot;,  # iShares S&amp;P 500 Index
+                    &quot;EWQ&quot;,  # iShares MSCI France Index ETF
+                    &quot;EWH&quot;,  # iShares MSCI Hong Kong Index ETF
+                    &quot;EWI&quot;,  # iShares MSCI Italy Index ETF
+                    &quot;EWY&quot;,  # iShares MSCI South Korea Index ETF
+                    &quot;EWP&quot;,  # iShares MSCI Spain Index ETF
+                    &quot;EWD&quot;,  # iShares MSCI Sweden Index ETF
+                    &quot;EWL&quot;,  # iShares MSCI Switzerland Index ETF
+                    &quot;EWC&quot;,  # iShares MSCI Canada Index ETF
+                    &quot;EWZ&quot;,  # iShares MSCI Brazil Index ETF
+                    &quot;EWO&quot;,  # iShares MSCI Austria Investable Mkt Index ETF
+                    &quot;EWK&quot;,  # iShares MSCI Belgium Investable Market Index ETF
+                    &quot;EPOL&quot;, # ishares MSCI Poland ETF
+                    &quot;THD&quot;,  # iShares MSCI Thailand ETF
+                    &quot;NGE&quot;,  # GlobalX MSCI Nigeria ETF
+                    &quot;ARGT&quot;, # GlobalX MSCI Argentina ETF
+                    &quot;EPHE&quot;, # iShares MSCI Philippines ETF
+                    &quot;EWA&quot;,  # iShares MSCI Australia ETF
+                    &quot;ECH&quot;]  # iShares MSCI Chile Investable Market Index ETF
+</code></pre>
+
+<p>We start by importing libraries:</p>
+<pre class="codehilite"><code># Import libraries
+import pandas as pd;
+import numpy as np;
+
+import requests;
+import json;
+
+from tqdm import tqdm;
+</code></pre>
+
+<p>Then we read the supported tickers file, which can be downloaded from Tiingo. We use data from Tiingo for this article as it is quite affordable at only $10 a month.</p>
+<pre class="codehilite"><code>supported_tickers = pd.read_csv(&quot;supported_tickers.csv&quot;)
+</code></pre>
+
+<p>We then filter out assets that are not ETFs, drop rows with NaN values (usually these are tickers with unknown availability dates), and filter out tickers that are not in our country_tickers list. I also reset the index because I don’t like looking at indexes that have gaps - there wasn’t a practical reason to do this.</p>
+<pre class="codehilite"><code>supported_tickers = supported_tickers[supported_tickers.assetType == &quot;ETF&quot;];
+supported_tickers = supported_tickers.dropna(0);
+supported_tickers = supported_tickers[supported_tickers.ticker.isin(country_tickers)].reset_index(drop=True);
+</code></pre>
+
+<p>Here is a quick print-out of what the supported_tickers table looked like after (end dates are a month old because I didn’t pull this data today)</p>
+<p><a href="images/5941f2c5fa7f.png"><img alt="" src="images/15ea7bfd7a38.png" /></a></p>
+<p>I then filtered out ETFs that didn’t have recent data available, which is basically just Russia. Russia is also a bit of a non-democracy right now so it doesn’t belong anyways.</p>
+<pre class="codehilite"><code>supported_tickers = supported_tickers[supported_tickers.endDate == &quot;2023-01-25&quot;]
+</code></pre>
+
+<p>I then imported my Tiingo API token from a JSON file so that nobody gets to see it, but you can hardcode it if you want.</p>
+<pre class="codehilite"><code>token_file = open('secrets.json')
+token_json = json.load(token_file)
+tiingo_token = token_json['tiingo_token']
+</code></pre>
+
+<p>Then we make the request headers, which I pretty much copied from the Tiingo docs.</p>
+<pre class="codehilite"><code>headers = {
+'Content-Type': 'application/json',
+'Authorization' : f'Token {tiingo_token}'
+}
+</code></pre>
+
+<p>We then define the columns we want (which is the adjusted OHLCV values, not the non-adjusted ones) and rename them because I like my columns named a certain way.</p>
+<pre class="codehilite"><code>select_columns = [&quot;date&quot;, &quot;adjClose&quot;, &quot;adjHigh&quot;, &quot;adjLow&quot;, &quot;adjOpen&quot;, &quot;adjVolume&quot;];
+rename_columns = [&quot;Timestamp&quot;, &quot;Close&quot;, &quot;High&quot;, &quot;Low&quot;, &quot;Open&quot;, &quot;Volume&quot;];
+</code></pre>
+
+<p>We then scrape the data and save each file into the folder I made for this data. (keep your data organized or you will waste a lot of time). </p>
+<pre class="codehilite"><code># Scrape Data From Tiingo
+
+for ticker, start_date, end_date in tqdm(supported_tickers[[&quot;ticker&quot;, &quot;startDate&quot;, &quot;endDate&quot;]].values):
+    try:
+        url = f&quot;https://api.tiingo.com/tiingo/daily/{ticker}/prices?startDate={start_date}&amp;endDate={end_date}&amp;format=json&amp;resampleFreq=daily&quot;;
+
+        r = requests.get(url, headers=headers).json()
+
+        df = pd.DataFrame(r)
+        df = df[select_columns];
+        df.columns = rename_columns;
+        df.Timestamp = pd.to_datetime(df.Timestamp)
+
+        df.to_parquet(f&quot;Data/Tiingo/OHLCV/daily_{ticker}_ohlcv_tiingo.parquet&quot;)
+    except Exception as e:
+        print(f&quot;Error Occured With {ticker}: &quot;, e)
+</code></pre>
+
+<p>I saved them as parquet files because compared to CSVs they are smaller on the disk, faster to open, and keep the formatting from Pandas when saved. Sometimes I use HDF5 files if my data is very large as this is much faster to open (specifically if all data types are numeric then it is 5-10x faster - on my computer at least). Reformatting your data is a really smart idea if you expect file I/O to be the biggest source of latency - which is very often the case. If your data is in the GBs then it is worth converting slow GZ-compressed CSV files to HDF5 or parquet. Luckily, our data is not very big here, but we still use parquet to keep our formatting.</p>
+<p>For the election data, I pulled it from the link below, but you can use whatever data you like, and I’ve included some alternative sources at the end.</p>
+<p>https://electiondataarchive.org/data-and-documentation/clea-upper-chamber-elections-archive/</p>
+<h4>Trade Simulation</h4>
+<p>Now that our data is scraped we can proceed with our analysis. As usual, we import the libraries we plan on using, and in my case some ones I often use - but may not end up using here. This is also because I am almost always copying and pasting my imports from another notebook to save time. </p>
+<p>The data_address_manager import is a custom tool that holds all of the functions I regularly use for managing data. I’m not sharing it, but you can easily figure out what the functions do by reading the function names.</p>
+<pre class="codehilite"><code>## Import Libraries
+import pandas as pd;
+import numpy as np;
+
+import matplotlib.pyplot as plt;
+import seaborn as sns;
+
+from tqdm import tqdm;
+import warnings;
+warnings.filterwarnings(&quot;ignore&quot;);
+from datetime import datetime as dt, timedelta;
+
+import data_address_manager as dam;
+</code></pre>
+
+<p>I have no respect for warnings whatsoever, this is terrible coding practice, but I do not care - it saves time so it is worth it for me.</p>
+<p>We start by pulling a list of all the file names inside the folder storing our data.</p>
+<pre class="codehilite"><code>etf_file_names = dam.get_file_names(&quot;Data/Tiingo/OHLCV&quot;)
+</code></pre>
+
+<p>We then hardcode a map between the tickers used by Tiingo and the country names used in our election data. A fair few of these countries aren’t in our election data or were excluded, such as Russia. I figured I’d code them all up in case I found a better election dataset halfway through (which I did, but not worth swapping it at that point).</p>
+<pre class="codehilite"><code>country_name_map = {&quot;EWJ&quot; : &quot;Japan&quot;, &quot;EFNL&quot; : &quot;Finland&quot;,
+                    &quot;EWW&quot; : &quot;Mexico&quot;, &quot;ERUS&quot; : &quot;Russia&quot;,
+                    &quot;IVV&quot; : &quot;US&quot;, &quot;EWQ&quot; : &quot;France&quot;,
+                    &quot;EWH&quot; : &quot;Hong Kong&quot;, &quot;EWI&quot; : &quot;Italy&quot;,
+                    &quot;EWY&quot; : &quot;South Korea&quot;, &quot;EWP&quot; : &quot;Spain&quot;,
+                    &quot;EWD&quot; : &quot;Sweden&quot;, &quot;EWL&quot; : &quot;Switzerland&quot;,
+                    &quot;EWC&quot; : &quot;Canada&quot;, &quot;EWZ&quot; : &quot;Brazil&quot;, 
+                    &quot;EWO&quot; : &quot;Austria&quot;, &quot;EWK&quot; : &quot;Belgium&quot;,
+                    &quot;ECH&quot; : &quot;Chile&quot;, &quot;EPOL&quot; : &quot;Poland&quot;,
+                    &quot;THD&quot; : &quot;Thailand&quot;, &quot;NGE&quot; : &quot;Nigeria&quot;,
+                    &quot;ARGT&quot; : &quot;Argentina&quot;, &quot;EPHE&quot; : &quot;Philippines&quot;,
+                    &quot;EWA&quot; : &quot;Australia&quot;};
+</code></pre>
+
+<p>We then read in our election data CSV file which we downloaded earlier.</p>
+<pre class="codehilite"><code>election_data = pd.read_csv(&quot;Data/ElectionData/clea_uc_20220111.csv&quot;)
+</code></pre>
+
+<p>Once again, we are renaming columns / removing ones we don’t care about.</p>
+<pre class="codehilite"><code>selected_columns = [&quot;id&quot;, &quot;ctr_n&quot;, &quot;yr&quot;, &quot;mn&quot;]
+renamed_columns = [&quot;election_id&quot;, &quot;country_name&quot;, &quot;year_num&quot;, &quot;month_num&quot;]
+
+election_data = election_data[selected_columns]
+election_data.columns = renamed_columns
+</code></pre>
+
+<p>Next, we aggregate our election data by election ID, taking the most common value (mode) for each column. This is because our data is at the constituency level and as mentioned earlier different constituencies may hold elections early.</p>
+<pre class="codehilite"><code>election_data = election_data.groupby(&quot;election_id&quot;).agg(pd.Series.mode)
+</code></pre>
+
+<p>After this, we save the country names to a list so that we can drop the ones that we don’t have an ETF for using this list.</p>
+<pre class="codehilite"><code>available_names = election_data.country_name.unique().tolist()
+</code></pre>
+
+<p>We then replace all the country names with their tickers and filter out the ones that still have their actual country names (ones we don’t have an ETF for).</p>
+<pre class="codehilite"><code>for ticker, country_str in country_name_map.items():
+    election_data[&quot;country_name&quot;] = election_data[&quot;country_name&quot;].replace(country_str, ticker)
+
+election_data = election_data[~election_data.country_name.isin(available_names)]
+</code></pre>
+
+<p>We then use the year number column and the month number column to create a DateTime of the first day of the month.</p>
+<pre class="codehilite"><code>election_data[&quot;election_month_start&quot;] = pd.to_datetime(election_data.year_num.astype(str) + &quot;-&quot; + election_data.month_num.astype(str) + &quot;-01&quot;)
+</code></pre>
+
+<p>Next, we read all of our files and put them into a multi-index data frame (which are horrible to work with unless it is simple data manipulation like this).</p>
+<pre class="codehilite"><code>etf_data = pd.DataFrame()
+
+for etf_file_str in etf_file_names:
+    etf_temp = pd.read_parquet(f&quot;Data/Tiingo/OHLCV/{etf_file_str}&quot;)
+    etf_name = etf_file_str.split(&quot;_&quot;)[1]
+    etf_temp[&quot;Ticker&quot;] = [etf_name for x in range(len(etf_temp))]
+    etf_temp = etf_temp.set_index([&quot;Ticker&quot;, &quot;Timestamp&quot;], drop=True)
+
+    etf_data = etf_data.append(etf_temp)
+</code></pre>
+
+<p>After that, we sort the data into chronological order. This is actually totally useless now that I’m writing this since we are just looking at average trade return, but if we were making a backtest we would do this so a helpful manipulation to apply anyways.</p>
+<pre class="codehilite"><code>election_data = election_data.sort_values(by='election_month_start').reset_index(drop=True)
+</code></pre>
+
+<p>We then run the originally discussed methodology, saving our results into a list. </p>
+<p>NOTE: you should see quite a few of these errors, this is just elections from the 1900s that we don’t have ETF prices for so it got an error finding the date. These are fine and it is quicker just to catch and ignore the errors than to add a filter for the date.</p>
+<pre class="codehilite"><code>single positional indexer is out-of-bounds
+
+
+event_record = []
+
+for i_idx in election_data.index.tolist():
+    current_election = election_data.iloc[i_idx];
+    election_country = current_election.country_name;
+    month_start = current_election.election_month_start;
+
+    try:
+        start_price = etf_data.loc[(election_country)][: month_start].iloc[-1].Close
+        end_price = etf_data.loc[(election_country)][: month_start + timedelta(days=30)].iloc[-1].Close
+        price_chg = (end_price/start_price);
+        event_record.append([election_country, month_start, start_price, end_price, price_chg])
+
+    except Exception as e:
+        print(e)
+</code></pre>
+
+<p>The above code is inefficient since it indexes into the same ETF twice, but performance is not a concern here. Otherwise, it is a good idea to check your logic.</p>
+<p>We then put this in a data frame, could have done this with a data frame from the start, but this was easier for me.</p>
+<pre class="codehilite"><code>results_table = pd.DataFrame(event_record, columns=[&quot;Ticker&quot;, &quot;Date&quot;, &quot;StartPrice&quot;, &quot;EndPrice&quot;, &quot;Chg&quot;])
+</code></pre>
+
+<p>After this, we produce a data frame containing the number of times an ETF ticker was used in a trade, a list of tickers that were traded, and a count of all the trades we made.</p>
+<pre class="codehilite"><code>tick_counts = pd.DataFrame(results_table.groupby('Ticker').count().Chg)
+
+traded_tickers = tick_counts.index.tolist()
+
+total_count = len(results_table)
+</code></pre>
+
+<p>Finally, we compute our average monthly returns by ETF and save it alongside the % of trades that each ETF was used for.</p>
+<pre class="codehilite"><code>country_monthly_returns = []
+
+for i in range(len(traded_tickers)):
+    index_1M_avg_ret = 1 + etf_data.loc[(traded_tickers[i])].resample(&quot;1M&quot;).last().Close.pct_change().dropna(0).mean();
+    sample_wgt = tick_counts.loc[traded_tickers[i]].Chg / total_count;
+    country_monthly_returns.append([traded_tickers[i], index_1M_avg_ret, sample_wgt])
+</code></pre>
+
+<p>Please forgive me for indexing into the list of traded tickers 3 different times. Should have really just done this instead:</p>
+<pre class="codehilite"><code>country_monthly_returns = []
+
+for traded_tick in traded_tickers:
+    index_1M_avg_ret = 1 + etf_data.loc[(traded_tick)].resample(&quot;1M&quot;).last().Close.pct_change().dropna(0).mean();
+    sample_wgt = tick_counts.loc[traded_tick].Chg / total_count;
+    country_monthly_returns.append([traded_tick, index_1M_avg_ret, sample_wgt])
+</code></pre>
+
+<p>As before, we slap that bad boy into a data frame.</p>
+<pre class="codehilite"><code>cmr = pd.DataFrame(country_monthly_returns, columns=[&quot;Ticker&quot;, &quot;AvgReturn&quot;, &quot;SampleWgt&quot;])
+</code></pre>
+
+<p>We then compute average returns for our trades and our benchmark:</p>
+<pre class="codehilite"><code>avg_trade_ret = (results_table.Chg.mean() - 1) * 100
+avg_index_return = ((cmr[&quot;AvgReturn&quot;] * cmr[&quot;SampleWgt&quot;]).sum() - 1) * 100
+</code></pre>
+
+<p>Finally, we print them out using a pretty format because people will have to actually read these results that are not me so might as well make it pretty.</p>
+<pre class="codehilite"><code>print(&quot;&quot;)
+print(&quot;                      Results                         &quot;)
+print(&quot;======================================================&quot;)
+print(&quot;&quot;)
+print('Average Trade Return:                          {:.2f}%'.format(avg_trade_ret))
+print('Average Weighted 1 Month Index Return:         {:.2f}%'.format(avg_index_return))
+</code></pre>
+
+<h4>Results</h4>
+<p>Here is the print-out of average returns. We could run statistical tests, but it is pretty clear that this is worth continuing with given how much larger trade returns are. No trading costs were simulated because I am not spending all that time grabbing spread data for these ETFs, nor does it matter when returns are in the single digit %s.</p>
+<p><a href="images/146bcc7a652f.png"><img alt="" src="images/2fc71fc6ad51.png" /></a></p>
+<p>We also look at the 1-month index returns for each ETF individually to make sure that our 3.07% return is larger than even the luckiest ETFs.</p>
+<p><a href="images/85464a844727.png"><img alt="" src="images/f3537d216460.png" /></a></p>
+<p>For bonus points, here is a printout of participation rates:</p>
+<p><a href="images/cfcb06f2d42a.png"><img alt="" src="images/3b63127caf3b.png" /></a></p>
+<h4>Further Improvements</h4>
+<p>Here are some ideas on how to further optimize this trade. The first of these would be to experiment with holding periods and try to juice better returns. </p>
+<p>Next, and likely one of the most valuable improvements would be to add more countries. There are far more ETFs out there, and many countries like Canada were not in the election dataset despite holding elections and having an ETF available.</p>
+<p>We could also look at lower constituency elections or look at which industries stand to be the most affected by elections, then using industry-specific ETFs for countries where that is available. Some countries don’t have ETFs but are in regional ETFs.</p>
+<h4>Alternative Methodologies</h4>
+<p>We looked at 1-month returns, mostly because I couldn’t find specific announcement dates, only months (although they could probably be found with more searching). The literature usually looks at the 5-day period prior to election day so that is a strong alternative approach for capturing this effect. Especially since you will probably end up hardcoding these dates in for live trading unless you can find an API for this shit. </p>
+<h4>Implementation Guidance</h4>
+<p>To give some advice on how to deploy this strategy, I recommend using QuantConnect as it is not a complex strategy and it is much easier to code using QC that a custom implementation. These tickers should for the most part be available with QC and can be traded through an IBKR account, but custom data can be imported from Tiingo anyways so this won’t create issues if it pops up.</p>
+<p>You will have to find an API for these elections, web-scraping investing (dot) com or Yahoo Finance might be your best bet. Otherwise, you will have to manually input these dates. The data for election dates can be imported as custom data for QC also (both the historical CSV data and any live data API you manage to find). </p>
+<p>As with most of my articles, they aren’t intended to provide readers with profitable strategies, but you are free to attempt to implement them regardless. This is a strategy that made 44 trades over a 20-year period (in my testing), so you certainly won’t make a fortune here, but this could definitely be pushed far past 200 trades if more countries were added with much broader election data.</p>
+<h4>Conclusion</h4>
+<p>To conclude, these effects exist for a reason. Elections are not exactly common events, and there is certainly a risk premium attached. Despite this, we’ve seen that a global consideration of elections is clearly capable of improving this trade. </p>
+<p>Our research resulted in success, but there is definitely a lot more work to be done. That I will leave up to the eager reader. It certainly would be a simpler project to attempt compared to other strategies, especially since the groundwork has been laid.</p>
+<p>As always, if you enjoyed the article then feel free to subscribe so that I am motivated to post more of this shit. </p>
+<p><a href="https://www.algos.org/subscribe?">Subscribe now</a></p>
+<h4>References</h4>
+<p><em><strong>Election data:</strong></em></p>
+<p>https://electiondataarchive.org/data-and-documentation/clea-upper-chamber-elections-archive/</p>
+<p>http://www.globalelectionsdatabase.com/index.php/index</p>
+<p><em><strong>ETF data:</strong></em></p>
+<p>https://api.tiingo.com/</p>
+<p><em><strong>QuantConnect strategy I stole half the tickers from:</strong></em></p>
+<p>https://www.quantconnect.com/learning/articles/investment-strategy-library/momentum-effect-in-country-equity-indexes</p>
+<p><em><strong>Election Seasonality Papers:</strong></em></p>
+<p><a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3531847">https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3531847</a></p>
+<p><a href="https://www.proquest.com/docview/2543521949?pq-origsite=gscholar&amp;fromopenview=true">https://www.proquest.com/docview/2543521949?pq-origsite=gscholar&amp;fromopenview=true</a></p>
+<p><a href="https://www.sciencedirect.com/science/article/pii/1059056095900365">https://www.sciencedirect.com/science/article/pii/1059056095900365</a></p>
+<p><a href="https://www.emerald.com/insight/content/doi/10.1108/MF-May-2012-0126/full/pdf?title=effects-of-election-results-on-stock-price-performance-evidence-from-1980-to-2008">https://www.emerald.com/insight/content/doi/10.1108/MF-May-2012-0126/full/pdf?title=effects-of-election-results-on-stock-price-performance-evidence-from-1980-to-2008</a></p>
+<p><em><strong>US Election Research:</strong></em></p>
+<p><a href="https://www.archives.gov/electoral-college/key-dates">https://www.archives.gov/electoral-college/key-dates</a></p>
+<p><a href="https://www.usa.gov/election#item-36072">https://www.usa.gov/election#item-36072</a></p>
+</article>
+</body>
+</html>

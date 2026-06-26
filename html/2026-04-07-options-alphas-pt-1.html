@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options Alphas Pt. 1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Options Alphas Pt. 1</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2026-04-07</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/options-alphas-pt-1</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>We present 3 options alphas for trading BTC, ETH, SOL, and XRP</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Introduction</h3>
+<hr />
+<p>In this article, the first in a three part series, we will present 3 working options alphas where we use options data to predict perpetual prices. Over the three articles we will present 5 alphas which achieve a combined performance above 2 Sharpe combined and 110 bps on dollars traded (All assets have sub-5 bps trading costs) on 72h rebalance (~1.5 Sharpe at 72h rebalance, ~2 Sharpe at 1h rebalance).</p>
+<p>In the second article, we will share 2 more alphas ranging between 1 and 2 Sharpe, and show how to combine them. Then we will analyse the signal as a fully monetizable strategy in the 3rd article. These alphas use options data to predict perpetual prices of BTC, ETH, SOL, and XRP on Binance, one of the 3 we will present today is shown below:</p>
+<p><a href="images/3b734194f64d.png"><img alt="" src="images/dffd60c1b4a4.png" /></a></p>
+<p>The alphas are fairly uncorrelated and orthogonal (not perfectly, but still very good for all being from the same dataset type) as seen in the scree plot below:</p>
+<p><a href="images/bebb166baf4a.png"><img alt="" src="images/6d7f73da87dd.png" /></a></p>
+<p>I think this series will be a real treat for readers as we present real working alpha which can actually be monetized now with no part left unexplained (other than data aggregation methods as this is very extensive, we will explain how to create the features of course though). </p>
+<p>As with the previous article, I will not bore you with excessive writing as these are not complicated ideas and the work has already been done by myself in finding them, I will provide the feature, how to replicate it, and the performance. </p>
+<h3>Alpha 1 - Options Volume Surprise</h3>
+<hr />
+<p>Starting with the weakest, we engineer the feature <code>ALPHA_volume_surprise</code> with the below formula:</p>
+<pre class="codehilite"><code>df[&quot;ALPHA_volume_surprise&quot;] = df[&quot;total_options_volume_1h&quot;] - \
+    df.groupby(&quot;ticker&quot;)[&quot;total_options_volume_1h&quot;].transform(lambda x: x.rolling(24 * 5).mean())
+</code></pre>
+
+<p>Effectively, we are taking the surprise in volume relative to a 5-day history. <code>total_options_volume_1h</code> refers to the total volume traded in options contracts (in USD) in the last 1h. We achieve the below performance:</p>
+<p><a href="images/e1f2a6be5157.png"><img alt="" src="images/426d0e61f8fa.png" /></a></p>
+<p><a href="images/1b8948566fa3.png"><img alt="" src="images/95c26e09f6c4.png" /></a></p>
+<h3>Alpha 2 - Options Put/Call Ratio</h3>
+<hr />
+<p>Next, coming in at just above 1 Sharpe we take the ratio of put and call volume to get the put/call ratio. Our volumes are aggregated from Binance options, Okex options, Bybit options, (and most importantly as this is where most of the volume is), Deribit options. We do:</p>
+<pre class="codehilite"><code>df[&quot;ALPHA_put_call_ratio&quot;] = (df[&quot;call_volume&quot;] - df[&quot;put_volume&quot;]) / \
+    (df[&quot;call_volume&quot;] + df[&quot;put_volume&quot;])
+</code></pre>
+
+<p>We achieve the below performance:</p>
+<p><a href="images/5ee7cb8b70de.png"><img alt="" src="images/4c3eecf57f77.png" /></a></p>
+<p><a href="images/a4d085b50108.png"><img alt="" src="images/f2b54a6ba5b3.png" /></a></p>
+<h3>Alpha 3 - Volatility Skew</h3>
+<hr />
+<p>Saving the best for last, we have volatility skew, which is a single measure which measures the overall volatility skewness of the volatility curve. We use the 30d expiry since it is both liquid and fairly short term (we are not forecasting months, only hours to days so short is better). </p>
+<p>We take the total volatility priced into out-of-the-money call options for the expiry 30d out (or closest expiry), and we call this “upside_volatility” and then we take the total implied volatility from out-of-the-money put options for the expiry 30d out (or closest expiry) and we call this “downside_volatility”. Our volatility skew alpha is quite literally just:</p>
+<pre class="codehilite"><code>df[&quot;ALPHA_options_skew_30d&quot;] = df[&quot;upside_volatility&quot;] - df[&quot;downside_volatility&quot;]
+</code></pre>
+
+<p>We achieve the below performance, in excess of 2 Sharpe:</p>
+<p><a href="images/c274eb384f30.png"><img alt="" src="images/9501faee68b0.png" /></a></p>
+<p><a href="images/9fc1b586ff53.png"><img alt="" src="images/2db4be3e0d59.png" /></a></p>
+<p>We achieve a very strong 7.7 bps on dollars traded for hourly rebalance, but we can instead rebalance only every 6h and achieve 31.2 bps on dollars traded (which is much larger than trading costs, this only trades BTC and ETH which both trade with sub 1 bps spread often and taker fees are &lt;2 bps for top tier (less for maker which is easy to get on these names)). </p>
+<p><a href="images/d11873f3e7b7.png"><img alt="" src="images/cf3652062878.png" /></a></p>
+<p><a href="images/61d1e7308959.png"><img alt="" src="images/21010f1c1e16.png" /></a></p>
+<h3>Portfolio Construction</h3>
+<hr />
+<p>Options skew uses BTC and ETH as its universe, and we use BTC, ETH, SOL, and XRP for the other two metrics as the universe. </p>
+<p>We construct portfolios by z-scoring over the last 1 week, dividing the z-score by 3, and taking the tanh of it to effectively clip it. </p>
+</article>
+</body>
+</html>

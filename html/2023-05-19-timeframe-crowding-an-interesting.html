@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timeframe Crowding - An Interesting Effect</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Timeframe Crowding - An Interesting Effect</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-05-19</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/timeframe-crowding-an-interesting</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Exploring how popular lookback periods can outperform via crowding effects</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<hr />
+<p>For this article, we will include the complete code needed to replicate the results at home and I’ve used freely available data (Yahoo Finance) to simplify this. No transaction costs were simulated, but this shouldn’t have much hold on the accuracy of our findings. To the best of my knowledge, the effect we will discuss is not present in the literature and is something I’ve managed to find for myself. </p>
+<p>Put simply, momentum strategies with a lookback period (in months) that is a multiple of 3 tend to outperform. Common choices for the number of months to look back typically include 6, 9, &amp; 12 when viewing the literature. This suggests that many practitioners use these same timeframes (typically a multiple of 3) when developing momentum strategies.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h4>The Momentum Strategy</h4>
+<hr />
+<p>It is important to note that the strategy I will present is pretty shit. I made it with ChatGPT and as a result, it has a few issues. </p>
+<p>Those being:</p>
+<ul>
+<li>
+<p>The universe should be updated on a rolling basis.</p>
+</li>
+<li>
+<p>Beta should be calculated on a rolling basis.</p>
+</li>
+<li>
+<p>Transaction costs are not simulated.</p>
+</li>
+<li>
+<p>Trade price data is used instead of mid-price data.</p>
+</li>
+</ul>
+<p>Whilst these errors don’t make our backtest an accurate depiction of actual performance, none of these should inadvertently produce the effect we observe in our data. Thus, we can ignore that our Sharpe ratios won’t be accurate. Often time saved is more valuable than being perfectly accurate, this is one of those cases.</p>
+<p>This is a pretty simple momentum strategy. We pull data for all S&amp;P500 constituents, filter out the top 10% assets by beta, use dual momentum with frog in the pan for the relative momentum component, and finally, we use volatility targeting to improve our Sharpe ratio and penalize for volatility.</p>
+<p>This makes use of 4 known improvements for momentum strategies:</p>
+<ul>
+<li>
+<p>Filter out assets in the top decile for beta.</p>
+</li>
+<li>
+<p>Ensemble both relative and absolute momentum to make dual momentum.</p>
+</li>
+<li>
+<p>Use FIP (frog-in-the-pan) to avoid returns driven by news.</p>
+</li>
+<li>
+<p>Volatility targeting (Volatility is correlated to worse momentum returns and higher turnover - thus we penalize for this. It also helps optimize our Sharpe).</p>
+</li>
+</ul>
+<p>Additional improvements exist, but ChatGPT fucked up half of them and I didn’t want to hold its hand the whole way through so this is what we are going with. </p>
+<p>Here is the code for our implementation (lookback is hardcoded as 12 here) :</p>
+<pre class="codehilite"><code>import pandas as pd
+import numpy as np
+import yfinance as yf
+
+def get_sp500_tickers():
+    url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+    table = pd.read_html(url)
+    df = table[0]
+    sp500_tickers = df['Symbol'].tolist()
+    return sp500_tickers
+
+sp500_tickers = get_sp500_tickers()
+
+# Define the period
+start_date = '2010-01-01'
+end_date = '2022-12-31'
+
+# Momentum lookback period in months
+lookback = 12
+
+# Create a DataFrame to store the adjusted close price of the stocks
+stock_data = pd.DataFrame()
+
+# Download historical adjusted close price of the stocks from Yahoo finance
+for stock in sp500_tickers:
+    stock_data[stock] = yf.download(stock, start=start_date, end=end_date)['Adj Close']
+
+# Compute returns
+returns = stock_data.pct_change()
+
+# Download S&amp;P 500 data for beta calculation
+sp500 = yf.download('^GSPC', start=start_date, end=end_date)['Adj Close']
+sp500_returns = sp500.pct_change()
+
+# Compute beta for each stock
+betas = returns.apply(lambda x: x.cov(sp500_returns) / sp500_returns.var())
+
+# Remove the top 10% highest beta assets
+filtered_stocks = betas[betas &lt;= betas.quantile(0.9)].index
+
+# Filter returns for the remaining assets
+returns = returns[filtered_stocks]
+
+# Compute volatility for each stock
+volatility = returns.rolling(lookback).std()
+
+# Compute inverse volatility weights
+weights = 1 / volatility
+
+# Normalize the weights so they sum up to 1
+weights = weights.div(weights.sum(axis=1), axis=0)
+
+# Compute absolute momentum
+absolute_momentum = returns.rolling(lookback).sum() &gt; 0
+
+# Compute &quot;Frog in the Pan&quot; measure for each stock
+fip_scores = -np.abs(returns).divide(returns.rolling(lookback).std())
+
+# Compute relative momentum based on &quot;Frog in the Pan&quot; scores
+relative_momentum = fip_scores.rank(axis=1, ascending=False)
+
+# Combine absolute and relative momentum to get dual momentum
+dual_momentum = absolute_momentum &amp; (relative_momentum &lt;= 5)  # Buy if stock is in the top 5
+
+# Apply the weights to the dual momentum signal
+weighted_signal = dual_momentum.mul(weights)
+
+# Compute the portfolio returns
+portfolio_returns = (weighted_signal.shift() * returns).sum(axis=1)
+
+# Compute the cumulative returns
+cumulative_returns = (1 + portfolio_returns).cumprod()
+
+# Plot the cumulative returns
+cumulative_returns.plot()
+</code></pre>
+
+<h4>Timeframe Crowding Analysis</h4>
+<hr />
+<p>Now that we have our “momentum strategy” to generate Sharpe ratios for, we can run some simulations. I backtested this strategy with the lookback (months) parameter set to all values between 3-36 and recorded the Sharpe ratio. This is the bar chart: </p>
+<p><a href="images/575c0f441b77.png"><img alt="" src="images/c9715b8277e3.png" /></a></p>
+<p>We can see some general areas that work best, but it is most interesting to look at how months that are a multiple of 3 perform. This is especially true for values that are popular in the literature. They tend to be slightly higher than their neighbors. </p>
+<p>[9, 12, 18, 21, 24, 36] are some of the most common timeframes in the literature and all of them are local peaks on this chart. The outlier is six months. It is a pretty noisy effect, but it does appear that there are slightly higher returns for lookback periods that are more common in the literature. The 1-year multiples also do well [12, 24, 36]. </p>
+<p>A proper analysis would use data from commodities markets / international stock markets, but there does appear to be a weak signal in favor of using the most popular approach. This is commonly observed with CTAs that the best strategy is often the one everyone else is using so the effect has some backing just from that.</p>
+<p>The average Sharpe ratio was 0.55, periods that were not a multiple of 3 had an average of 0.53, and those that are a multiple of 3 had an average of 0.57. The 1-year multiples had an average Sharpe ratio of 0.67.</p>
+<h4>Conclusion</h4>
+<hr />
+<p>The effect presented today is very noisy and needs a lot more data to properly conclude whether it is real or not. That said, the results so far seem to suggest there might be a weak relation here. This should probably be confirmed using different strategies and in various markets to see if popular strategies tend to perform best when used with their most popular settings. </p>
+<p>This article can be viewed more as a research idea/implementation of a basic momentum strategy than anything rigorously scientific - I’d probably write a paper if that were the case.</p>
+<p>The other part of this article was to demonstrate a basic momentum strategy that uses a few smart ideas. Those looking to take this further should read my (much longer) article on momentum strategies and the improvements that can be made. The code was written mostly by ChatGPT-4 so this shouldn’t be hard for anyone to implement.</p>
+<p>I’ll probably do a part 2 on this article eventually where I bring out global equities and commodities data, but for now, this is fine and it shouldn’t be too much work anyways in case someone decides to take this on as a research project in the meantime.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+</article>
+</body>
+</html>

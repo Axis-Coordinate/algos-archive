@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automating Charting - Slightly Less Degen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Automating Charting - Slightly Less Degen</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-12-29</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/automating-charting-slightly-less</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Using AI &amp; heuristic methods to systematically trade support &amp; resistance.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/0e564fd80edd.webp"><img alt="A futuristic and sleek cover photo for a Substack article about automated technical analysis in finance. The focus is on a large, high-resolution technical chart displaying various financial data like stock prices and trends. Superimposed on this chart is an advanced, metallic robot with a modern design, visually engaged in analyzing and charting the data. The robot has a screen on its chest displaying intricate financial algorithms. The background is minimalistic and professional, emphasizing the theme of systematic and automated financial analysis, with a color scheme of blue and silver to convey a sense of technology and precision." src="images/5f0a7274c5a0.webp" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>Today’s article is a bit of a deviation from the usual areas and instead explores 2 examples where we formulate novel implementations of a hypothesis. We start with a well-known discretionary trading strategy and come up with methods to automate it. Whilst a fun topic to play around with, it also demonstrates the important skill of being able to neatly formulate logic to capture an idea.</p>
+<p>We will look at a couple approaches to try and systematically capture support and resistance. This is a strategy well-known within the technical analysis community and is beloved by degenerate gamblers the world over. Many call it bullshit, but others defend it with the logic that if enough people believe in it and trade it - then there must be some patterns in the market from it.</p>
+<p>Today, we will finally settle this argument by making systematic a once thought to be impossible to make systematic strategy - support and resistance. Our attempts at doing so follow these lines:</p>
+<ol>
+<li>
+<p>Cumulative volume traded with exponential decay.</p>
+</li>
+<li>
+<p>Regressing Pivot Points </p>
+</li>
+</ol>
+<p>Our first methods use heuristics to try and capture what humans normally do manually, whereas the 2nd method goes straight down the machine route in order to find support and resistance areas. </p>
+<p>I really like the below graph as a way to visualize what this effect really is:</p>
+<p><a href="images/2f8bde045060.png"><img alt="" src="images/82da4d358988.png" /></a>(Overlapping of 1h rolling highs/lows for 1 minute mid-price bars - BYBIT:ETH/USDT, 2021-01-01 → 2021-01-05)</p>
+<p>We are simply exploiting the effect where market highs and lows tend to occur at similar prices.</p>
+<p><a href="images/5250543cce48.png"><img alt="" src="images/a1d8956e4ef5.png" /></a></p>
+<p>Of course there is a lot of noise to this, and things don’t always line up perfectly, but this helps us illustrate the idea behind this alpha in a much more quantitative way.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Data &amp; Research Methodology</p>
+</li>
+<li>
+<p>Cumulative Volume Traded</p>
+</li>
+<li>
+<p>Pivot Points Method</p>
+</li>
+<li>
+<p>Conclusions </p>
+</li>
+</ol>
+<h4>Data &amp; Research Methodology</h4>
+<hr />
+<p>We will test our models on the two markets with the highest presence of gambling addicts, and those are the FX &amp; crypto markets. </p>
+<p>Our FX universe includes the 10 most liquid currency pairs and the 10 most liquid crypto pairs. Our data will be sourced from Tiingo. Here is our universe:</p>
+<pre class="codehilite"><code>fx_pairs = [
+    &quot;eurusd&quot;,
+    &quot;gbpusd&quot;,
+    &quot;usdjpy&quot;,
+    &quot;usdcad&quot;,
+    &quot;audusd&quot;,
+    &quot;usdchf&quot;,
+    &quot;nzdusd&quot;,
+    &quot;eurgbp&quot;,
+    &quot;eurjpy&quot;,
+    &quot;audjpy&quot;
+]
+
+crypto_pairs = [
+    &quot;btcusd&quot;,
+    &quot;ethusd&quot;,
+    &quot;bnbusd&quot;,
+    &quot;xrpusd&quot;,
+    &quot;solusd&quot;,
+    &quot;adausd&quot;,
+    &quot;avaxusd&quot;,
+    &quot;dogeusd&quot;,
+    &quot;trxusd&quot;,
+    &quot;dotusd&quot;
+]
+</code></pre>
+
+<p>For each of our methods, we start with a general overview of the strategy, where we map out the rough idea of what it involves and the thinking behind it. </p>
+<p>Next, we will walk through the code and logic components step by step before backtesting our strategy and giving some final remarks on the results/takeaways.</p>
+<p>Let’s start with the code for our FX data:</p>
+<pre class="codehilite"><code>tiingo_api_key = &quot;XXXXXXXXXXXXXXXXXXXXXXXXXXX&quot;
+
+for ticker in tqdm(fx_pairs):
+    url = f&quot;https://api.tiingo.com/tiingo/fx/{ticker}/prices?startDate=2022-01-01&amp;resampleFreq=5min&amp;token={tiingo_api_key}&quot;
+    r = requests.get(url).json()
+    df = pd.DataFrame(r)
+    df.to_parquet(f'Data/FX/{ticker}.parquet', index=False)
+</code></pre>
+
+<p>Then, to adapt it to crypto, we only need to make some small modifications:</p>
+<pre class="codehilite"><code>for ticker in tqdm(crypto_pairs):
+    url = f&quot;https://api.tiingo.com/tiingo/crypto/prices?tickers={ticker}&amp;startDate=2022-01-01&amp;resampleFreq=5min&amp;token={tiingo_api_key}&quot;
+    r = requests.get(url).json()
+    df = pd.DataFrame(r[0]['priceData'])
+    df['date'] = pd.to_datetime(df['date'])
+    df.to_parquet(f'Data/Crypto/{ticker}.parquet', index=False)
+</code></pre>
+
+<p>Our first method uses trade data from Tardis to find the cumulative volume at each specific price instead of just taking bars (more accurate). We will not show how this is collected, but this can be learned from the website “tardis.dev”.</p>
+<h4>Cumulative Volume Traded</h4>
+<hr />
+<p>For this approach to support and resistance, we are using volume to weight the prices instead of simply trying to see what prices we tend to cluster at the most. We will then use an exponential decay on this to make it an online method.</p>
+<p>Here is our trade data for AVAX/USDT on Bybit Futures:</p>
+<p><a href="images/5b7459e698cb.png"><img alt="" src="images/436354620c21.png" /></a></p>
+<p>We then can use the below code to calculate the exponentially decayed volume traded at each level, and plot it as a histogram:</p>
+<pre class="codehilite"><code>import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
+def exponential_decay(trade_time, current_time, half_life):
+    return np.exp(-np.log(2) * (current_time - trade_time) / half_life)
+
+def create_weighted_histogram(df, timestamp, bin_size, half_life='1D'):
+    current_time = pd.Timestamp(timestamp)
+    half_life = pd.Timedelta(half_life)
+    df['weight'] = df.index.map(lambda x: exponential_decay(x, current_time, half_life))
+    df['weighted_volume'] = df['volume'] * df['weight']
+    df['price_bin'] = pd.cut(df['price'], bins=np.arange(df['price'].min(), df['price'].max() + bin_size, bin_size))
+    histogram = df.groupby('price_bin')['weighted_volume'].sum()
+    return histogram
+
+def dollar_formatter(x, pos):
+    return f'${x:,.0f}'
+
+timestamp = '2022-08-09 12:00:00'
+bin_size = 0.25 
+histogram = create_weighted_histogram(df_trades, timestamp, bin_size)
+
+sns.set_theme()
+
+plt.figure(figsize=(12, 6))
+ax = plt.subplot(111)
+histogram.plot(kind='bar', ax=ax)
+ax.yaxis.set_major_formatter(ticker.FuncFormatter(dollar_formatter))
+plt.title('Weighted Volume by Price Bin')
+plt.xlabel('Price Bin')
+plt.ylabel('Weighted Volume ($)')
+plt.xticks(rotation=45)  
+plt.show()
+</code></pre>
+
+<p><a href="images/94e60b79014e.png"><img alt="" src="images/b59562b9986f.png" /></a></p>
+<p><a href="images/e9799e5ac97b.png"><img alt="" src="images/535889c6620e.png" /></a></p>
+<p>We use the arbitrary timestamp of UTC 1200hrs on the 9th of August 2022. Since this is an online metric it’s a bit more useful to visualize it as a heatmap for the select window of the 5th to the 6th:</p>
+<p><a href="images/61fd89c5ea79.png"><img alt="" src="images/fa267376a664.png" /></a></p>
+</article>
+</body>
+</html>

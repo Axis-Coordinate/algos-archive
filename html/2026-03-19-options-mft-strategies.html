@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options MFT Strategies</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Options MFT Strategies</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2026-03-19</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/options-mft-strategies</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Finding alpha in options markets</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1>Options MFT Strategies</h1>
+<h3>Finding alpha in options markets</h3>
+<p><a href="https://substack.com/@quantarb"><img alt="Quant Arb's avatar" src="images/6baa73a2bda0.jpeg" /></a></p>
+<p><a href="https://substack.com/@quantarb">Quant Arb</a></p>
+<p>Mar 19, 2026</p>
+<p>∙ Paid</p>
+<p>17</p>
+<p>Share</p>
+<p><a href="images/ba2b277bcb37.jpeg"><img alt="Vola Curves | Vola Dynamics" src="images/ae7872399cae.jpeg" /></a></p>
+<h3>Introduction</h3>
+<hr />
+<p>Personally, I feel as though the whole world of options statistical arbitrage has always been fairly confusing for most people. In my view, there’s 4 main ways to approach statistical arbitrage strategies using options (that I’ve worked with at least). I’m not talking about pairs trading here for those who may be a little confused, I’m instead talking about statistical medium frequency alphas that trade options. I will give the frameworks for modelling these effects and the ways in which alpha is often discovered.</p>
+<p>This is perhaps one of the areas most shrouded in mystery (as if doing good statistical arbitrage research wasn’t hard enough). I’ll break it down in this article the ways that I’ve always approached the problem (all of which I’ve found to be fairly successful, although some a bit more than others)</p>
+<p>We will talk only about strategies that directly trade options, and not about strategies that use information from options markets to trade. You can do that and it works well, although for crypto options effects are a fairly weak in my opinion and I’ve always had trouble monetising the metrics I found that worked partially because you can only really trade BTC/ETH (so it’s either BTC/ETH relative value or a time series strategy, which rules out cross sectional which would be my preferred way do it if I could), but mostly because the options market in crypto is a much smaller part of the total volume compared to markets like equities where options flows are big game. Anyways, you can still use options as signals in linear stuff, but that’s a story for another time.</p>
+<h2>This post is for paid subscribers</h2>
+<p><a href="https://www.algos.org/subscribe?simple=true&amp;next=https%3A%2F%2Fwww.algos.org%2Fp%2Foptions-mft-strategies&amp;utm_source=paywall&amp;utm_medium=web&amp;utm_content=167209313">Subscribe</a></p>
+<p><a href="https://substack.com/sign-in?redirect=%2Fp%2Foptions-mft-strategies&amp;for_pub=quantarb&amp;change_user=false">Already a paid subscriber? <strong>Sign in</strong></a></p>
+</article>
+</body>
+</html>

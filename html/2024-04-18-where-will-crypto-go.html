@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Where will crypto go?</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Where will crypto go?</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-04-18</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/where-will-crypto-go</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Understanding the markets view on BTC and ETH over various timescales</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<hr />
+<p>In this (much shorter than usual) article, we will try to have a guess at where the market believes BTC and ETH will be going soon. Our analysis will be results focused, and in two follow up articles we will dive a bit more into ways to estimate this effectively.</p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h4>Methodology - A Naïve Approach</h4>
+<hr />
+<p>When I first thought about this topic, my immediate thought was to look at using the d2 of the options and use that to fit a surface to the probabilities of each. For readers unfamiliar with some of the math:</p>
+<p>Where:</p>
+<ul>
+<li>
+<p>C(S, t) is the price of the call option</p>
+</li>
+<li>
+<p>S is the current spot price</p>
+</li>
+<li>
+<p>K is the strike price of the option</p>
+</li>
+<li>
+<p>T is the expiration time </p>
+</li>
+<li>
+<p>t is the current time</p>
+</li>
+<li>
+<p>r is the risk free rate </p>
+</li>
+<li>
+<p>Phi is the cumulative distribution function (CDF) of the standard normal distribution</p>
+</li>
+<li>
+<p>d_1 and d_2 are intermediate variables calculated as part of the model.</p>
+</li>
+</ul>
+<p>This is article will tend to become a bit math heavy - it’s option afterall, but what really is worth understanding is that d_1 plugs into a CDF and gets you your delta and if you adjust it for time and volatility, you get d_2 or the probability the option will expire ITM. </p>
+<p>We can see quite simply how d_1 becomes d_2 with a quick adjustment:</p>
+<p>Giving a basic code example for this:</p>
+<pre class="codehilite"><code>import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+# Define the parameters
+S = 100       # Current price
+r = 0.01      # Annual risk-free rate
+sigma = 0.20  # Volatility (standard deviation per year)
+T = 0.5       # Time to expiration in years
+
+# Range of strike prices
+Ks = np.linspace(80, 120, 100)  # Strike prices from 80 to 120
+
+# Function to calculate d2
+def calculate_d2(S, K, r, sigma, T):
+    return (np.log(S / K) + (r - 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+
+# Calculate d2 for each strike price
+d2s = calculate_d2(S, Ks, r, sigma, T)
+
+# Calculate CDF values at each d2, which is N(d2)
+cdf_values = norm.cdf(d2s)
+
+# Adjust the PDF calculation by taking the negative of the derivative if necessary
+pdf_values = -np.diff(cdf_values) / np.diff(Ks)
+
+# Replot with the corrected PDF values
+plt.figure(figsize=(10, 6))
+plt.plot(Ks[:-1], pdf_values, label='PDF of Final Prices')
+plt.xlabel('Strike Price')
+plt.ylabel('Probability Density')
+plt.title('Corrected Implied Probability Density Function of Price at Expiration')
+plt.legend()
+plt.grid(True)
+plt.show()
+</code></pre>
+
+<p>Which then produces this plot:</p>
+<p><a href="images/b3bce5d54309.png"><img alt="" src="images/d7ea6f79a917.png" /></a></p>
+<p>We do a few modifications to this as we then also look at the probability that the price will end up within $100 and $1000 of each strike (for ETH and BTC respectively), but I will touch on this in a later article.</p>
+<h4>Improving on this</h4>
+<hr />
+<p>It’s not a terrible method for estimating the probability that prices will be within X amount of a strike (which we will show after), but when it comes to uniform distributions we get a pretty terrible job. </p>
+<p>That said, we do capture bumps in the curve which I personally think are valuable. For the sake of uniformity we will assume a log-normal distribution, and weight by the bid-ask spread. </p>
+<pre class="codehilite"><code># Constants and Price Range
+MINIMAL_WEIGHT = 1e-5
+price_range = np.linspace(min(df['Strike Price']) * 0.8, max(df['Strike Price']) * 1.2, 400)
+distributions = []
+
+# Calculate the weighted PDF for each option
+for index, row in df.iterrows():
+    bid_iv = row['bid_iv']
+    ask_iv = row['ask_iv']
+    mid_iv = row['mid_iv']
+    spread = ask_iv - bid_iv
+    weight = (1 / spread) if spread &gt; 0 else MINIMAL_WEIGHT
+
+    sigma = mid_iv * np.sqrt(row['T'])
+    scale = np.exp(np.log(S) - 0.5 * sigma**2 * row['T'])
+
+    dist = lognorm(s=sigma, scale=scale)
+    pdf_values = dist.pdf(price_range) * weight  # Multiply by weight here
+
+    if not any(np.isnan(pdf_values)):
+        distributions.append(pdf_values)
+
+# Sum the distributions index-wise
+weighted_pdf = np.sum(distributions, axis=0)
+weighted_pdf /= np.sum(weighted_pdf)  # Normalize the final weighted PDF
+
+# Plot the result
+plt.figure(figsize=(10, 6))
+plt.plot(price_range, weighted_pdf, label='Weighted Log-Normal Mixture Model')
+plt.title('Weighted Log-Normal Mixture Model for Bitcoin Options')
+plt.xlabel('Strike Price')
+plt.ylabel('Probability Density')
+plt.legend()
+plt.grid(True)
+</code></pre>
+
+<p>There’s some earlier computation here, but this gives us the below plot for the 31st of May 2024. This isn’t so present-able so we will of course add a bit of fun to the plots and show it all the next section.</p>
+<p><a href="images/5f59f38a9968.png"><img alt="" src="images/e56f989bbddc.png" /></a></p>
+<h4>What the Market Thinks</h4>
+<hr />
+<p>Here’s our probability distributions estimated from our more naïve approach to things that plainly uses d2:</p>
+<p><a href="images/070fdaf7ecd8.png"><img alt="" src="images/3cc880ecd219.png" /></a></p>
+<p><a href="images/a36421debd2d.png"><img alt="" src="images/eb6533f12650.png" /></a></p>
+<p>These plots are nice and all, but they don’t tell us an awful lot in intuitive terms about where the price will go, so it isn’t so easy to visualize. </p>
+<p><a href="images/4d5cdc5e5ece.png"><img alt="" src="images/1957d782cfa3.png" /></a></p>
+<p><a href="images/3edfd39baedf.png"><img alt="" src="images/9b1b662ecce2.png" /></a></p>
+<p>Plotting our mixture model approach:</p>
+<p><a href="images/3778c90eeabd.png"><img alt="" src="images/d7d1b3825cb0.png" /></a></p>
+<p><a href="images/fc56794c4af4.png"><img alt="" src="images/33f8fb4fb0be.png" /></a></p>
+<h4>Notes</h4>
+<hr />
+<p>There are many caveats to note here… and they really should not be ignored. The first is that we do not really believe that the market implied volatility will be the realized volatility of the market. To estimate this we would need to do work on estimating the realized volatility against the markets implied over time, and infer from this a rough guess of the true implied distribution.</p>
+<p>The distributions also had very fat tails because we have OTM options which are not being weighted down in their presence. We can see below how illiquid options form a large part of the curve:</p>
+<p><a href="images/284aa7962e88.png"><img alt="" src="images/ee706f7665a7.png" /></a></p>
+<p>We would be much better served by fitting a least squares spline and weighting by bid-ask spread in our distribution. </p>
+<p><a href="images/c6c77795ffb9.png"><img alt="" src="images/28084fd8e5a0.png" /></a></p>
+<p>Least squares splines will tend to overshoot with sparse data however and so we would prefer to use Fengler’s method which preserves convexity and monotonicity of the implied volatility surface. I’ll demonstrate this some other time.</p>
+<p>There’s much more to this topic, and many methods exist:</p>
+<ul>
+<li>
+<p>Log-normal Mixture (Already looked at today)</p>
+</li>
+<li>
+<p>Stochastic Collocation</p>
+</li>
+<li>
+<p>Andreasen-Huge (w/ Tikhonov regularization ideally)</p>
+</li>
+<li>
+<p>Butterflies Method</p>
+</li>
+<li>
+<p>Breeden-Litzenberger</p>
+</li>
+</ul>
+<p>These methods are often used by real practitioners. We’ll dive into this in later articles. In the meantime, feel free to check out this prior article where we dove into splines for options with a focus on market making:</p>
+</article>
+</body>
+</html>

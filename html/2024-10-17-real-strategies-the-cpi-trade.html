@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Strategies - The CPI Trade</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Real Strategies - The CPI Trade</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-10-17</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/real-strategies-the-cpi-trade</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>A low latency trade with multiple profit angles</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/e682b11b9a83.webp"><img alt="" src="images/ae41cd1b8754.webp" /></a></p>
+<h3>Introduction</h3>
+<hr />
+<p>Pricing in events typical falls under the realm of event arbitrage, and we’ve talked about this before extensively, but let’s look at a real example that made real PnL. I know a couple other fund manager friends of mine ran this same trade so it certainly was no secret, but it also wasn’t well-known enough to be arbitraged away. There’s also multiple angles on the effect that produce profits.</p>
+<p>This is a trade that existed for a long time and still exists today, but to a lesser degree due to the enthusiasm, mostly from retail traders, that surrounds CPI releases.</p>
+<p>This will be a short article. It’s not a crazy complicated alpha - I’ll explain it in as much detail as needed and leave the rest to the reader.</p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Basic Overview</p>
+</li>
+<li>
+<p>Reacting To Information</p>
+</li>
+<li>
+<p>Engineering The Latency Side</p>
+</li>
+<li>
+<p>The Statistical Angle</p>
+</li>
+<li>
+<p>The Lead-Lag Play</p>
+</li>
+</ol>
+<h3>Basic Overview</h3>
+<hr />
+<p>There are many key economic releases, CPI is one of them, and they have a huge impact on the market. We can also look at FOMC, but this is not as simple to monetize so we are focusing on simple economic statistics. </p>
+<p>For CPI there is a forecast from the market and an actual. We can use this to form our alpha:</p>
+<pre class="codehilite"><code>alpha = np.sign(actual - forecast) * -1
+</code></pre>
+
+<p>Surely it isn’t that simple? It sort of is. A lot of stupid effects occur because of stupid flows. In this case, it was lots of CPI flows. </p>
+<p>You can run this on many releases including:</p>
+<ul>
+<li>
+<p>CPI</p>
+</li>
+<li>
+<p>GDP</p>
+</li>
+<li>
+<p>ISM PMI</p>
+</li>
+<li>
+<p>NFP</p>
+</li>
+<li>
+<p>PCE</p>
+</li>
+<li>
+<p>PPI </p>
+</li>
+<li>
+<p>UR (Unemployment Rate)</p>
+</li>
+</ul>
+<p>You can look for examples on <a href="http://investing.com">investing.com</a> of important economic events:</p>
+<p><a href="images/e6af227870e8.png"><img alt="" src="images/34ca80a6ac11.png" /></a></p>
+<h3>Reacting To Information</h3>
+<hr />
+<p>There is a clear relationship between surprise level and the level of movement in price. However, the binary signal we discussed earlier does a great job regardless.</p>
+<p><a href="images/d78c5d67694d.png"><img alt="" src="images/b42350b86b6e.png" /></a></p>
+<p>Most of the shock materializes in the first 10-15s. Our models assume 3 second latency and exit after 15 seconds. That gives us this backtest when we use CPI, PPI, and PCE as our economic events we react to. </p>
+<p><a href="images/f9a2ae2a8b25.webp"><img alt="Image" src="images/548d739c58f6.webp" /></a></p>
+<p>This takes into account best bid/ask and assumed the top fees on Binance (could assume the worst, wouldn’t change much - spread is the biggest killer). All data is HFT quote data for Binance provided by Tardis.</p>
+<p>What if we want to add other indicators?</p>
+<p><a href="images/bc2b729c8bde.webp"><img alt="Image" src="images/c26190dc052d.webp" /></a></p>
+<p>This includes GDP, PMI, and NFP on top of existing indicators. This appears to work in equities as well (there’s plenty of time to ride the wave) - just one specific example:</p>
+<p><a href="images/53357e3e0a7a.webp"><img alt="Image" src="images/819806c959cb.webp" /></a></p>
+<h3>Engineering The Latency Side</h3>
+<hr />
+<p>This is where the trade gets creative, we have about 2-3 seconds to react, which is already a lot, but it gets sent out via email so it can certainly take a while. How do we ensure that we get the data first?</p>
+<p>We make 1000s of email accounts and sign up to receive the emails from BLS, this dramatically lowers the latency. Although, for a period, the trade worked even without this.</p>
+<p>It’s not exactly a fast trade by any means - you can run it in Python, and really should.</p>
+<h3>The Statistical Angle</h3>
+<hr />
+<p>The below is the typical path that price follows after a CPI release.</p>
+<p><a href="images/050e3bbe8af8.png"><img alt="" src="images/9981cd14ac1a.png" /></a></p>
+<p>There is a small dip prior to announcement - this isn’t clear how to profit off of, and then there is the large move for the first 15 or so seconds - which we’ve already established how to profit from, but after that we have two profitable effects:</p>
+<ul>
+<li>
+<p>Reversal</p>
+</li>
+<li>
+<p>Momentum</p>
+</li>
+</ul>
+<p>The reversal is harder to capture, and spread is typically too wide for us to make money without using limit orders. Luckily, you can get filled very easily - or you certainly used to be able to get filled very easily because of all the retail flow. Post limit orders, get the fill, and you can make it profitable. I know from experience - back when I was involved in this trade.</p>
+<p>Now, momentum. This one is simple. I found the alpha of “if buying from release to 10s after release made money with the worst fees, then buy and hold for another 60s. Same logic for sells.”. That produces this: </p>
+<p><a href="images/ff0c150ef428.webp"><img alt="Image" src="images/8407acf1d4e5.webp" /></a></p>
+<p>Bad day to be a retail trader on the other side of this, eh?</p>
+<h3>The Lead-Lag Play</h3>
+<hr />
+<p>What about a third strategy off this effect??? Surely there can’t be more alpha here! Oh, but there is. When this event occurs, arbitrages arise, and the prices fall out of sync easily. So you can thus, easily make money with a simple lead-lag trade. This one works well and my graphs are recent:</p>
+<p><a href="images/b781ef7a7985.jpeg"><img alt="" src="images/0b31b12a7541.jpeg" /></a></p>
+<p>What about more tokens than BTC?</p>
+<p><a href="images/51b98a663274.jpeg"><img alt="" src="images/a3d84f5f8049.jpeg" /></a></p>
+<p>As we can see, there’s many seconds to play off DYDX (the slower exchange) against a fast one. Here’s the general placement of laggards:</p>
+<p><a href="images/23e8fb36a23a.jpeg"><img alt="" src="images/3bfb5bd9d02a.jpeg" /></a></p>
+<p>Let’s visualize that across different events:</p>
+<p><a href="images/b573291ad673.jpeg"><img alt="" src="images/456b7095ea1b.jpeg" /></a></p>
+<p><a href="images/2787305a9929.jpeg"><img alt="" src="images/a41eb499f650.jpeg" /></a></p>
+<p><a href="images/07966518a8f8.jpeg"><img alt="" src="images/2a18e58a035b.jpeg" /></a></p>
+<p>What about spread for the lead-lag trade? I’ve got you covered:</p>
+<p><a href="images/ff74e29f8c42.jpeg"><img alt="" src="images/803dc71b9732.jpeg" /></a></p>
+<p>It can get high (axis is in bps), but nowhere near as high as the potential whole % moves triggered by CPI and similar events. You can always maker out afterwards / wait for it to simmer a little as well. You’ll benefit from the post-shock momentum. That or put on a spread and lock it in.</p>
+</article>
+</body>
+</html>

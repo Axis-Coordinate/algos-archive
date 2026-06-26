@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equity Option Mispricing Effects</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Equity Option Mispricing Effects</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-06-17</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/equity-option-mispricing-effects</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Interesting opportunities for profit in equities options</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/beabf06c67cd.jpeg"><img alt="Derivatives Images – Browse 22,103 Stock Photos, Vectors, and Video | Adobe  Stock" src="images/f1eafb4eda23.jpeg" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>This short article will explore a few mispricing effects that have been documented for equities options markets. We will cover some effects that are probably already familiar to some readers and also a fair few that are lesser known. Hopefully, this points you towards some good ideas for developing strategies in this area, and I’ll try to add a bit of insight along the way.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>PEAIV </p>
+</li>
+<li>
+<p>Growth Premium</p>
+</li>
+<li>
+<p>IV vs. RV Effect</p>
+</li>
+<li>
+<p>DHOR vs. Idiosyncratic Volatility</p>
+</li>
+<li>
+<p>Distress Premium</p>
+</li>
+<li>
+<p>Option Momentum</p>
+</li>
+<li>
+<p>Risk-Adjusted Option Momentum</p>
+</li>
+<li>
+<p>Delta Hedging </p>
+</li>
+</ol>
+<h4>PEAIV</h4>
+<hr />
+<p>This is probably one of the best-known mispricing effects, and as a result, it is very hard to beat fees with nowadays.</p>
+<p>Simply put, IV increases pre-earnings announcement and decreases afterward.</p>
+<p>We can further add in some alpha by trading the PEAD (Post Earnings Announcement Drift) with our options position. This is only for when we are trading the short volatility side of things. </p>
+<p>Selling naked options is generally a bad idea, so whilst we can use straddles as a cheap way to be long volatility, we will probably want to use butterflies to get short volatility. Thus, if we have a large surprise on the earnings (cause for PEAD), we can capture the volatility crush post-earnings whilst also playing the momentum via an asymmetric butterfly where we hold less of or no options on the call / put side to get directional exposure.</p>
+<h4>Growth Premium</h4>
+<hr />
+<p>There is a strong premium on call options for growth stocks. This can potentially be viewed as a premium on skewness, but my view is that retail buying these up is likely the biggest cause. Hence, we see this premium become greatest when looking at 0DTE options, which are a fan favorite for retail traders (even after adjusting for the higher premium on short-dated options).</p>
+<h4>IV vs. RV Effect</h4>
+<hr />
+<p>When we compare the historical volatility vs. implied volatility, we find that the relationship between the two is a strong predictor of DHOR (Delta Hedged Option Returns). We use the delta-hedged returns to remove as many dependencies on the underlying as possible, and this gives us a much more well-behaved distribution once we’ve done this.</p>
+<h4>DHOR vs. Idiosyncratic Volatility</h4>
+<hr />
+<p>Another interesting predictor of delta-hedged option returns is the idiosyncratic volatility of the underlying instrument for the option. </p>
+<p>Much like the prior effect, we can frame it as a risk premium, but a much better way to approach it is by asking, “When is this premium greatest?”. Capturing risk premiums in a diversified manner and doing so when they are the greatest is a robust way to generate excess returns across all markets.</p>
+<h4>Distress Premium</h4>
+<hr />
+<p>This, much like the growth premium, can be viewed as a lottery effect where people are willing to overpay for options that behave more like lottery tickets than anything else. I’m sure there are plenty of psychological explanations behind this one along the lines of people overestimating the likelihood of very unlikely events, but generally, there is a premium on call options for distressed firms.</p>
+<p>The “lotteryness” effect is usually regarded as its own premium, both for equities and options, but it overlaps heavily with the growth and distress premium. The idea behind them is generally consistent across these.</p>
+<h4>Option Momentum</h4>
+<hr />
+<p>Momentum in option returns is far more statistically significant than it is for equities and comes without the momentum crashes or long-term reversal effects. This is an effect that generates 3+ Sharpe pre-transaction costs, but as we see in the next section, it is entirely subsumed by risk-adjusted option momentum.</p>
+<p>As with the previous effects I’ve listed, we use delta-hedged option returns for this momentum.</p>
+<h4>Risk-Adjusted Option Momentum</h4>
+<hr />
+<p>This is probably the most profitable effect out of them all. It generates a high Sharpe ratio post-transaction costs (3+) and has a 5+ Sharpe ratio pre-transaction costs. </p>
+<p>Using the risk factors for options identified in Bali, Beckmeyer, Moerke, and Weigert (2023) and the risk factors for equities identified in Jensen, Kelly, and Pedersen (2021).</p>
+<p>We apply Instrumental Principal Component Analysis to deal with the fact that option characteristics change with the underlying as their moneyness evolves. </p>
+<p>A simple momentum signal is adjusted by the risk exposures to the largest factors, and this is then traded to produce a highly profitable options momentum strategy.</p>
+<p>The paper “A New Option Momentum: Compensation for Risk” gives more details on the implementation for those looking to implement this.</p>
+<h4>Delta Hedging</h4>
+<hr />
+<p>Most of the papers so far have used daily delta-hedged option returns, but this isn’t exactly the most optimal way to do things. At the end of the day, delta hedging is a trade-off between risk and transaction costs. Time doesn’t have much of a place here, so an optimal delta hedging solution shouldn’t include it.</p>
+<p>Minimum Variance Delta (MVD) hedging is explored in the below paper:</p>
+<p><a href="http://www-2.rotman.utoronto.ca/~hull/downloadablepublications/Optimal%20Delta%20Hedging.pdf">http://www-2.rotman.utoronto.ca/~hull/downloadablepublications/Optimal%20Delta%20Hedging.pdf</a></p>
+<p>And the trade-off between risk and transaction costs is solved in this paper:</p>
+<p><a href="https://efmaefm.org/0efmameetings/efma%20annual%20meetings/2005-Milan/papers/284-zakamouline_paper.pdf">https://efmaefm.org/0efmameetings/efma%20annual%20meetings/2005-Milan/papers/284-zakamouline_paper.pdf</a></p>
+<p>Often it is easiest to use a simple method, and Zakamouline et al. is going to be a lot less work if you aren’t planning on making delta hedging the focus of the research (as opposed to a necessary step in researching option mispricing effects).</p>
+</article>
+</body>
+</html>

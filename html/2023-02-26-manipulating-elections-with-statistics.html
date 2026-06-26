@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manipulating Elections With Statistics</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Manipulating Elections With Statistics</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-02-26</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/manipulating-elections-with-statistics</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>How one simple policy could massively skew votes into the blue</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><img alt="User's avatar" src="images/7f216c3a7d3f.jpeg" /></p>
+<p>Discover more from The Quant Stack</p>
+<p>Articles about cool quantitative research </p>
+<p>Over 23,000 subscribers</p>
+<p>Subscribe</p>
+<p>By subscribing, you agree Substack's <a href="https://substack.com/tos">Terms of Use</a>, and acknowledge its <a href="https://substack.com/ccpa#personal-data-collected">Information Collection Notice</a> and <a href="https://substack.com/privacy">Privacy Policy</a>.</p>
+<p>Already have an account? Sign in</p>
+<h1>Manipulating Elections With Statistics</h1>
+<h3>How one simple policy could massively skew votes into the blue</h3>
+<p><a href="https://substack.com/@quantarb"><img alt="Quant Arb's avatar" src="images/6baa73a2bda0.jpeg" /></a></p>
+<p><a href="https://substack.com/@quantarb">Quant Arb</a></p>
+<p>Feb 26, 2023</p>
+<p>7</p>
+<p>Share</p>
+<h4>DISCLAIMER:</h4>
+<p>This post is basically all statistics and watered-down game theory. No political views are expressed, and I intend to keep it that way. We are a little off-topic in this post, so consider it more of a special edition post. Next post we will talk about some seasonality effects around election dates, carrying the theme, but back to markets.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<p>Subscribe</p>
+<h4>Some Statistics From The 2016 US Election</h4>
+<p>Using the below table from the 2016 election, we can see that there is a clear relationship between age and political preference. I’m using 2016 since it was a lot closer to 50/50 (by popular vote) than the 2020 election. This makes our results more generalizable.</p>
+<p><a href="images/3e69f7d192ae.png"><img alt="" src="images/5f435c54e5f2.png" /></a></p>
+<p>For our second chart, we can see voter turnout by age group for the 2016 election. We can also see a pretty clear trend, one that is reinforced by historical data, that younger voters have a lower turnout</p>
+<p><a href="images/b7e503544cc6.png"><img alt="" src="images/61305cec69de.png" /></a></p>
+<p>How could this be exploited? For the Democrats, this is done by getting young people to vote. This is why there was a massive push for this coming from the democrats during the 2020 elections. There is also a strategic, although a little less democracy-friendly way to do this in reverse.</p>
+<p>If you can lower the turnout of younger people, you favor the Republicans. You can also exploit the fact that lower-income people favor Democrats and increase the cost of voting (mostly time cost) through adding extra “background checks” etc. This is why the map of hard vs easy to vote states lines up nicely with red vs blue states.</p>
+<p>Here is our map of red vs. blue states.</p>
+<p><a href="images/e11443687fb8.png"><img alt="People in red states and blue states are equally clueless about ..." src="images/ba1d1c4c503e.png" /></a></p>
+<p>Here is our map of hard vs. easy-to-vote states:</p>
+<p><a href="images/f0b522181783.png"><img alt="" src="images/4618ea599238.png" /></a></p>
+<p>The relationship here is pretty self-explanatory. </p>
+<h4></h4>
+<h4>Some Strategy</h4>
+<p>If Democrats manage to gain control, they can pass one of two laws:</p>
+<p>-        Everyone must vote by law (like in Australia)</p>
+<p>-        You get a stimmy check if you vote (regardless of how you vote)</p>
+<p>Both of these increase the chance that poor or young voters will go out and vote. This would skew the probability in the Democrats’ favor for a long time. </p>
+<h4>Some Dirty Math</h4>
+<p>18-24-year-olds have a 21% edge in favor of the Democrats, and 24-29-year-olds have a 14% edge in favor of the Democrats. These populations are similar in size so we can roughly assume a 17.5% avg edge. 65+ year-olds have an 8% edge in favor of Republicans (according to 2016) data.</p>
+<p>18-29-year-olds are also roughly similar in size to the population of people over 65 in the US. We will ignore the middle age ranges as these are closer to 50/50, and also, I am lazy. As a rough figure, we will use 42% as the turnout for 18-29-year-olds, and 68% for 65+-year-olds.</p>
+<p>Both population groups are about 55 million people, maybe a little more. This works out to 9,625,000 net votes in favor of democrats for 18-29 (with 100% turnout) and 4,400,000 net votes in favor of Republicans for 65+ (also 100% turnout). A net difference of 5,225,000 for democrats.</p>
+<p>Applying our turnout rates, we get 4,042,500 net democrat votes for 18-29 and 2,992,000 net republican votes for 65+. This is only 1,050,500 net votes toward democrats. Our net difference increases 5x, by over 4 million votes, when we force everyone to vote.</p>
+<p>This of course does not include the middle age ranges but the general idea still stands. An enormous edge is given to the Democrats by passing a single law, now that’s what I call strategy.</p>
+<p>As always, please leave political views at the door and focus on the statistics :)</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<p>Subscribe</p>
+<p><a href="https://substack.com/profile/29444094-leonidas"><img alt="Leonidas's avatar" src="images/4cf8ec6400fd.png" /></a><a href="https://substack.com/profile/80453476-omid-heravi"><img alt="Omid Heravi's avatar" src="images/069ecfa1478f.jpeg" /></a><a href="https://substack.com/profile/21805083-pri"><img alt="Pri's avatar" src="images/b7e12dc99344.png" /></a><a href="https://substack.com/profile/1072759-kevin-de-jesus"><img alt="Kevin De Jesus's avatar" src="images/db04a5d76249.png" /></a><a href="https://substack.com/profile/255011730-dave-mueller"><img alt="Dave Mueller's avatar" src="images/1a751c885549.jpeg" /></a></p>
+<p>7 Likes</p>
+<p><a href="https://substack.com/note/p-105133213/restacks?utm_source=substack&amp;utm_content=facepile-restacks"></a></p>
+<p>7</p>
+<p>Share</p>
+</article>
+</body>
+</html>

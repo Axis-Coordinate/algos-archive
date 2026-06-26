@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automating Alpha Pt.2 - Best Practices</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Automating Alpha Pt.2 - Best Practices</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-06-18</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/automating-alpha-pt2-best-practices</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Best Practices, Tips, and Tricks For Automating Alpha Discovery</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<p>In the previous article, we provided a very high level run-through for automated alpha generation. We’ll continue down the path of a Birds Eye view in this article, but the next will be much more code focused. It’s taken a fairly long while because of the heavy focus on code, so hence a later part of the series.</p>
+<p>I think a bit of code is useful for getting people experimenting faster, which of course, is the only real way to grasp any of what I tell you to the fullest extent, but it’s hard to convey high-level ideas across code, such as mental frameworks for approaching the challenge itself.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Input Data Normalization</p>
+</li>
+<li>
+<p>Tuning of Selection Likelihoods</p>
+</li>
+<li>
+<p>Known Strategies as Base Alphas</p>
+</li>
+<li>
+<p>Too Many Inputs &amp; Unrelated Data</p>
+</li>
+<li>
+<p>Automated Alpha is Great For Bad Researchers</p>
+</li>
+<li>
+<p>Breadth Beats Depth</p>
+</li>
+<li>
+<p>Exponential Temporal Weighting</p>
+</li>
+<li>
+<p>The Many Outweigh The Few</p>
+</li>
+<li>
+<p>Wholistic Perspective</p>
+</li>
+</ol>
+<h4>Input Data Normalization</h4>
+<hr />
+<p>It is important to ensure that our data has been properly normalized before we use it as input data for our genetic algorithm. This means that we should ensure that our data is homogenous and comparable. Raw price and financial data are not comparable. From high - low, this would mean that stocks with a larger price on average will have a much larger score. This adds additional noise to the process and makes it harder for us to work with.</p>
+<p>We can choose to only work with returns, but this again limits us by preventing us from using perfectly acceptable formulas such as:</p>
+<p>α=(high−low)close</p>
+<p>This is fine because we are normalizing it to ensure that our prices do not scale with the overall value of close, which is something we, as the researcher know, is not a place to find any real alpha at all. Thus, we embed this rule to ensure that the algorithm knows it as well.</p>
+<p>For financial data, we can adjust with the market capitalization, or simply the price if it is already on a per-share basis.</p>
+<p>This leaves us with 4 options:</p>
+<ol>
+<li>
+<p>Unconstrained optimization, and we simply assume that alphas like high - low will evolve into a normalized version of themselves in the algorithm’s attempt to reduce noise. </p>
+</li>
+<li>
+<p>Forcefully normalize everything, and use close-to-close returns (instead of close) or P/E ratio (instead of profits).</p>
+</li>
+<li>
+<p>Use normalized-based alphas instead of the raw data. I.e. for High, we turn it into High/VWAP, where VWAP is our chosen normalization variable for all raw price-based input data sources. Under this model, all raw price inputs must be divided by VWAP as it is our normalization variable.</p>
+</li>
+</ol>
+<p>Option 3 is by far the best option here, where we set a default normalization source for every single type of raw data that we have. If we have the equation:</p>
+<p>α=high−low</p>
+<p>It then becomes:</p>
+<p>α=highVWAP−lowVWAP=(high−low)VWAP</p>
+<p>This is a great solution because the VWAP will eventually factor out if we introduce something like a divide by close to the equation:</p>
+<p>α=(high−low)VWAPCloseVWAP=(high−low)Close</p>
+<p>Normally, we would have to increase the height of the tree from 2 layers (bottom layer is high and low, top layer is subtract) to 3 layers:</p>
+<p><a href="images/5124a9a6ebf0.png"><img alt="" src="images/f2caa559b598.png" /></a></p>
+<p>When all we are really doing is normalizing the equation, and not attempting to add any complexity here. However, if we decided to deviate from the default standard normalization metric that all the raw price data inputs have to use (VWAP), and used Close to divide it instead, then we would end up with 3 layers:</p>
+<p><a href="images/04d3556ba7ca.png"><img alt="" src="images/4fb5dafcc738.png" /></a></p>
+<p>Thus, when we are counting the height of the tree, we should ignore it if it meets the following criteria:</p>
+<ol>
+<li>
+<p>Division operation</p>
+</li>
+<li>
+<p>Denominator is a default normalization variable </p>
+</li>
+<li>
+<p>All numerators are in the raw input group associated with the denominator’s default normalization variable status</p>
+</li>
+</ol>
+<p>Thus, we can normalize our alphas without penalizing the search process for this normalization, without strictly forcing them into one choice for normalization if it decides it’s worth increasing the complexity. </p>
+<h4>Tuning of Selection Likelihoods</h4>
+<hr />
+<p>For any given operator, we will have some probability, and it does not necessarily need to be the same for each one of them. A very niche transform should not be given a high probability, the same with niche pieces of input data.</p>
+<p>Price data is quite common to use, but a piece of alternative data like corporate lobbying spending is a much rarer piece of information. </p>
+<p>Whilst this decreases the time we will spend in some search spaces, it is worthwhile because our goal here is to only explore the most valuable search spaces, and any possible place of finding profit (at a certain point the benefit to potentially finding an alpha gets wiped away by the cost of increased overfitting).</p>
+<p>Certain input data sources also work very well with certain operators. An example of this is dollar volume and the log transform. Experienced researchers will have many of these combinations they know well and can take advantage of these.</p>
+<h4>Known Strategies as Base Alphas</h4>
+<hr />
+<p>Well-documented strategies such as cross-sectional momentum and trend-following strategies can be improved by using them as the base alphas. There are many papers detailing how incorporating signals like volume, sentiment, and volatility into the construction of momentum, reversal, and trend-following strategies drastically improves performance. </p>
+<p>Thus, we can avoid searching in the dark, and instead build off what we already know has a fundamental reason for working (momentum) and then looking at how we can better isolate it. </p>
+<p>Sentiment and volume make sense because they align with the idea that momentum comes from behavioural biases. If people have a strong sentiment towards the stock this could imply that the stock is trendy in people’s minds. That said, we would only want slow and steady sentiment. Otherwise, it could imply that the company has been in the news recently. This is why a high amount of frequency over social domains, regardless of sentiment, negatively correlates to the strength of momentum in practice because the price change is from news, not a behavioural bias. The same effect can be seen where you can get better momentum portfolios by conditioning on lower volume.</p>
+<h4>Improved Combinations</h4>
+<hr />
+<p>If we take something like the pct_change in price, we may end up with a value like 0.05 for a 5% increase. The issue with this is that if we then match the log operator to it, we get the same value regardless of whether that is positive or negative 5%. We would have:</p>
+<p>α=log(rt)</p>
+<p>We know that log returns are useful, and a valuable inclusion, but we also know this is not how you calculate them. Instead, we should recognize that when we apply the log transform to returns, we want to get back “log returns” and in this case, we would do so by calculating as such:</p>
+<p>α=log(1+rt)</p>
+<p>We automatically replace log(r_t) with log(1 + r_t) to prevent wasting time.</p>
+<h4>Too Many Inputs &amp; Unrelated Data</h4>
+<hr />
+<p>Oftentimes we will change the choice of data and operators as we focus on new timeframes. If we are looking at short-term returns, then it makes plenty of sense to use orderbook-based input data like the imbalance, but on the other hand, it wouldn’t make sense to use fundamental data for such a timeframe. </p>
+<p>Too many input data sources, especially when the sources are from quite unrelated data categories, is one of the fastest ways to introduce noise and lower the effectiveness of the search algorithm. The best way to do it is to decide which data sources go well with everything (price, volume, etc), and then for every category (sentiment, fundamental, options data, etc), we run those searches individually where each search has the specific data category related to it + the sources that work well globally included.</p>
+<p>In my own practical experience, there is very little alpha to be found from combining data sources from far apart categories into the same formula. There is a highly limited set of data categories that are worth combining with every other category (those generally applicable sources are mostly price / flow-based data). Sometimes there are exceptions but focus on the hypothesis behind why they work together before you go ahead and do it.</p>
+<p>We do encounter the issue of certain features being highly correlated because we trained them each in their own separate batches by category when taking this approach, but it can easily be fixed by removing the weaker of highly correlated alphas. </p>
+<h4>Automated Alpha is Great For Bad Researchers</h4>
+<hr />
+<p>If you feel that your edge is in the data - and that the other parts are not your forte, then automating the alpha discovery process on that data is a very effective way to allow you to focus your time on what makes the money. Data is no use if you can’t extract alphas from it, but for firms where there is not any edge in their research ability, it’s easier, and oftentimes a better solution, to automate it away.</p>
+<p>This requires that you produce edge still. The automated alpha search does not produce alpha, not unless you are good at building the search algorithm which is unlikely if you are already bad at researching them manually. It’s the concept of “What makes the money?”. Is it the trader’s intuition? Is it the access to proprietary data like foot traffic counts collected using hidden cameras? Is it the ability to analyze data better than others? If the answer to that is the data, then an automated search algorithm should extract that alpha smoothly. </p>
+<p>Sure, “most public data has alpha in it”, but nobody makes money because they have sources like price data in front of them… they make money because they can find patterns in that data better than anyone else. </p>
+<p>Automated alpha discovery will not make you able to find patterns better than anyone else. Therefore, unless you can build an alpha search system that is also better than the vast majority of other ones, it will not make money on well-mined data. </p>
+<p>However, if your data is not well mined, you don’t need to analyze it better than everyone else, and automated alpha discovery becomes a great time saver for quants focused on other things.</p>
+<h4>Breadth Beats Depth</h4>
+<hr />
+<p>Another rule of thumb that will improve the performance of your trading strategies is to focus on breadth not depth. We want to find many different operators and input data sources to improve our performance. This is opposed to the option of increasing the complexity of our alphas.</p>
+<p>There is still a limit to the amount of operators we can have, and the same goes for input data sources (as we discussed), but through tuning the system to avoid unlikely search spaces, and removing overlapping data sources when we know there are too many of them, we can mitigate this issue. </p>
+<p>Frequently, researchers become tempted to try and increase the height limits of their trees in order to improve their performance, but this will not yield results.</p>
+<p>Many, reasonably low-complexity alphas, from various data sources, and a wide range of operators is a much better solution.</p>
+<p>That is not to say there is value in dumping as many possible transforms and sources together as possible - some are incredibly correlated and we only add noise by doing so. Every new data source of transform you add increases the level of noise in your search and the propensity for overfitting so it is wise to ensure that it is truly able to provide a greater benefit than this cost through its novelty. </p>
+<h4>Exponential Temporal Weighting</h4>
+<hr />
+<p>Exponential temporal weighting. Quite the string of buzzwords. I wasn’t really sure how to describe this one, but in the simplest of terms: “Alpha decays over time so why do we care about finding alpha that worked 20 years ago and doesn’t now”. Following this idea, our alpha’s correlation to forward returns should be weighted higher for the more recent samples. </p>
+<p>In practice, we find it is only necessary to do this when we have quite a long lookback period, one long enough to extend into the durations where alphas can entirely decay. </p>
+<h4>The Many Outweigh The Few</h4>
+<hr />
+<p>A lot of people think about automated alpha generation as how to find the best possible strategy when really you need to consider the overall portfolio. </p>
+<p>Often quants will be very happy with having found a seemingly low Sharpe effect 1-2 Sharpe perhaps, but with the saving grace that it is entirely orthogonal. </p>
+<p>When you have many many low Sharpe strategies that are reasonably uncorrelated, you can easily combine them to create a very high Sharpe strategy overall.</p>
+<p>From an initial perspective, you may think it’s easier to find a smaller group of high Sharpe alphas, but when that’s actually tested out of sample you’ll realise how bad the risk of overfitting destroys you. </p>
+<p>It’s far far easier to generate many lower Sharpe alphas that are uncorrelated and combine into a high Sharpe portfolio. Thus, this is a much more recommended route.</p>
+<p>It’s also a reason as to why I earlier recommended that people search for breadth in their data sources and operators instead of depth in the complexity of any individual alpha. </p>
+<h4>Wholistic Perspective</h4>
+<hr />
+<p>This is a mindset shift. Don’t think about individuals. Think about generating a portfolio of strategies. Think about how they all combine and see that whole as what you are truly generating.</p>
+<p>Once you change to this mindset the results are far better because you consider how everything combines as one of the primary focuses. </p>
+<p>Lack of correlation is perhaps one of the most important factors in determining the success of an automated alpha generation system.</p>
+</article>
+</body>
+</html>

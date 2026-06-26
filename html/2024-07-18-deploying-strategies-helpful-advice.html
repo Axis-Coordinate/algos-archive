@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploying Strategies - Helpful Advice</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Deploying Strategies - Helpful Advice</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-07-18</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/deploying-strategies-helpful-advice</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>An assortment of helpful advice, tips, and tricks to pass on to you!</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4>Introduction</h4>
+<hr />
+<p>As with most things in quantitative trading, you eventually build habits and learn about valuable tricks whilst working in the field. It is those habits that then lead to you being able to be more efficient, make less mistakes, and generally be better at the work you do. </p>
+<p>I always love it as a result, when a colleague, friend, or someone I’ve met through Twitter passes on a helpful trick for how they do a task I’m working on that then saves me a lot of time. Maybe some of these ideas are not new to you, but I hope that you’ll walk away with at least one or two things to try on on your next trading algorithm.</p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<h4>SageMaker</h4>
+<hr />
+<p>I often find that when I need to deploy a very simple task and want to set it up in as minimal time as possible, using AWS SageMaker is an effective way to get things done. It’s straightforward to debug when you write it in Jupyter, and it’s not very hard to deploy, either. </p>
+<p>I have often had a SageMaker instance and run notebooks on it that do data scraping work regularly. This is an admittedly terrible solution for anything long-term, but it’s a time-saving trick for simple data scraping tasks.</p>
+<p>I've seen million-dollar strategies run from Jupyter notebooks, excel, R, MATLAB -- all sorts. Whatever gets you to production is best...</p>
+<h4>QuantConnect</h4>
+<hr />
+<p>QuantConnect is worth learning for a couple of reasons. Firstly, you can generate great backtest reports and know that it’s gone and simulated accurate fill data behind the scenes, as well as realistic trading costs. It does have some issues related to the quality of its crypto data, but for longer-term strategies, I find it conservative in its estimates and does a great job.</p>
+<p>It’s not useful for anything that isn’t simple, but the primary benefit QuantConnect offers is that the code is robust and comes with all the fancy extras that are a pain to code. You have notifications, accounting, backtesting using the same logic as production, and analytics—all while not having to worry about the data feed breaking.</p>
+<p>It’s cheap, simple, and a great solution any time you want to run a basic momentum, seasonality, etc, type strategy in any market of your choice. </p>
+<p>The downside is that it doesn’t handle complex strategies well, and the data quality isn’t there for medium to high-frequency testing. </p>
+<p>If you work with hourly and above bars and have a relatively simple logic (i.e. pairs trading, momentum, seasonality, mean-reversion, lead-lag, …) then I really suggest taking a look at this. </p>
+<p>They also have a shockingly large amount of alternative data for a meagre cost. I haven’t toyed with this, but it is certainly a cheap way to do so for those interested.</p>
+<h4>Nohup</h4>
+<hr />
+<p>This is a particular and annoying issue with Python scripts in EC2 where if you run it as:</p>
+<pre class="codehilite"><code>python3 main.py
+</code></pre>
+
+<p>When the SSH disconnects, it often turns off your scripts, and this is really a pain to diagnose. Memory overflow issues are equally a nightmare to diagnose, but they are not common at all—although they don’t come with an easy fix.</p>
+<pre class="codehilite"><code>nohup python3 main.py
+</code></pre>
+
+<p>Just make sure to add “nohup” to the start of the command, and then there won’t be a signal sent to kill it on SSH disconnect. I’m sure this is quite common knowledge, but it’s worth knowing if you don’t already know it.</p>
+<h4>Screen</h4>
+<hr />
+<p>Do you hate losing the ability to see the CLI output, and now you have to open up logs? Maybe you had a TUI open. Or is there any reason you need persistent access to the script even after SSH disconnect? </p>
+<p>Use this easy command to make a new screen:</p>
+<pre class="codehilite"><code>screen -S &lt;name_of_screen&gt;
+</code></pre>
+
+<p>Then go in and run your scripts, and when you disconnect, you can SSH back in and run:</p>
+<pre class="codehilite"><code>screen -R &lt;name_of_screen&gt;
+</code></pre>
+
+<p>You’ll be back to the CLI output, and if you press ctrl-C, the script will stop as if it had been open the whole time. </p>
+<h4>Flask Servers</h4>
+<hr />
+<p>I’m not sure this is much of a trick it’s more of me saying my default way of doing things — which is still information that is likely valuable as it’s my local minimum I’ve reached through experimentation. Anyways, when it comes to trading algorithms - you often want the ability to control them. I find the simplest way to do this is with either of these 2 Flask based approaches:</p>
+<p><a href="images/d6cc14fd6ca1.png"><img alt="" src="images/66d667a89db9.png" /></a></p>
+<pre class="codehilite"><code>class TradingAlgorithm:
+    def __init__(self):
+        self.initialize_algorithm_state()
+        self.initialize_flask()
+
+    def initialize_algorithm_state(self):
+        self.state_a = params.STATE_A_PARAM
+        self.state_b = params.STATE_B_PARAM
+        self.state_c = params.STATE_C_PARAM
+        self.state_d = params.STATE_D_PARAM
+        self.state_e = params.STATE_E_PARAM
+
+    def initialize_flask(self):
+        self.flask_app = Flask('algorithm_server')
+        flask_log = logging.getLogger('werkzeug')
+        flask_log.setLevel(logging.ERROR)
+        CORS(self.flask_app)
+        self.flask_app.config['CORS_HEADERS'] = 'Content-Type'
+        self.flask_app.debug = params.FLASK_DEBUG
+        self.flask_app.use_reloader = params.FLASK_RELOADER
+        self.flask_app.add_url_rule(
+            '/health_check', 'health_check', self.health_check)
+        self.flask_app.add_url_rule(
+            '/get_data_a', 'get_data_a', self.get_data_a)
+        self.flask_app.add_url_rule(
+            '/get_data_b', 'get_data_b', self.get_data_b)
+        self.flask_app.add_url_rule(
+            '/toggle_state_a', 'toggle_state_a', self.toggle_state_a)
+        self.flask_app.add_url_rule(
+            '/toggle_state_b', 'toggle_state_b', self.toggle_state_b)
+</code></pre>
+
+<p>I find something like the above makes a lot more sense when you have to control just one trading algorithm and you want to get data from it / control it, but it isn’t really meant to be a server. </p>
+<p>The second approach is better suited to data servers such as a PNL tracking server or risk manager between many algorithms:</p>
+<p><a href="images/f526ac6b13f0.png"><img alt="" src="images/919149ab6fb0.png" /></a></p>
+<pre class="codehilite"><code>from flask import Flask, jsonify
+from flask_cors import CORS
+import logging
+
+app = Flask(__name__)
+CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+# Configure logging
+flask_log = logging.getLogger('werkzeug')
+flask_log.setLevel(logging.ERROR)
+
+# Initialize algorithm state
+state_a = params.STATE_A_PARAM
+state_b = params.STATE_B_PARAM
+state_c = params.STATE_C_PARAM
+state_d = params.STATE_D_PARAM
+state_e = params.STATE_E_PARAM
+
+@app.route('/health_check')
+def health_check():
+    return jsonify({&quot;status&quot;: &quot;ok&quot;})
+
+@app.route('/get_data_a')
+def get_data_a():
+    # Implement logic to get data A
+    return jsonify({&quot;data&quot;: &quot;data_a&quot;})
+
+@app.route('/get_data_b')
+def get_data_b():
+    # Implement logic to get data B
+    return jsonify({&quot;data&quot;: &quot;data_b&quot;})
+
+@app.route('/toggle_state_a')
+def toggle_state_a():
+    global state_a
+    state_a = not state_a
+    return jsonify({&quot;state_a&quot;: state_a})
+
+@app.route('/toggle_state_b')
+def toggle_state_b():
+    global state_b
+    state_b = not state_b
+    return jsonify({&quot;state_b&quot;: state_b})
+
+if __name__ == '__main__':
+    app.run(debug=params.FLASK_DEBUG, use_reloader=params.FLASK_RELOADER)
+</code></pre>
+
+<p>If you are wondering why we are modifying the Werkzeug logger, it is because if we don’t, our own loggers will be messed up, and we’ll be printing DEBUG statements to the CLI even if we set it as INFO level. It’s incredibly annoying.</p>
+<h4><strong>Saving Money With ARM</strong></h4>
+<hr />
+<p>This won't be a very long section, but put simply:</p>
+<p>The ARM instances on AWS get you twice the compute for half the price. It's a bit more of a pain, but well worth it if you care about your bill.</p>
+<h4>Telegram Notifiers</h4>
+<hr />
+<p>This is a great way to get notifications set up. Here are the steps:</p>
+<ol>
+<li>
+<p>Create a new Telegram channel</p>
+</li>
+<li>
+<p>message botfather</p>
+</li>
+<li>
+<p>Type “/newbot”</p>
+</li>
+<li>
+<p>Name the bot </p>
+</li>
+<li>
+<p>Give it a username ending with bot</p>
+</li>
+<li>
+<p>Record the token you get for the bot</p>
+</li>
+<li>
+<p>Add the bot to a channel</p>
+</li>
+<li>
+<p>Run the below code</p>
+</li>
+<li>
+<p>Send a message in the channel</p>
+</li>
+<li>
+<p>Run the below code again </p>
+</li>
+<li>
+<p>The printout of the code is your channel ID, use this with your bot token in the code after the below code (2nd snippet)</p>
+</li>
+</ol>
+<p><a href="images/607795aab838.png"><img alt="" src="images/06d48c09b1fb.png" /></a></p>
+<pre class="codehilite"><code>import requests
+
+def get_telegram_bot_updates(bot_token):
+    url = f&quot;https://api.telegram.org/bot{bot_token}/getUpdates&quot;
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        return data['result']
+    else:
+        print(f&quot;Error: {response.status_code}&quot;)
+        return None
+
+bot_token = &quot;XXXXXXXXXXXXXXXXXX&quot;
+updates = get_telegram_bot_updates(bot_token)
+
+if updates:
+    for update in updates:
+        print(update['chat']['id'])
+else:
+    print(&quot;No updates found or there was an error.&quot;)
+</code></pre>
+
+<p>Here’s the second snippet (the one used to actually send notifications):</p>
+<p><a href="images/26bbef8eabb7.png"><img alt="" src="images/6e5b61493ff2.png" /></a></p>
+<pre class="codehilite"><code>import time
+import logging
+import asyncio
+import requests
+from aiogram import Bot, types
+import aiohttp
+from aiogram.types import FSInputFile, Update
+from utilities.config import Parameters
+
+params = Parameters()
+
+general_logger = logging.getLogger(params.logger_names['general'])
+
+class MessageHandler:
+    def __init__(self, auth_token, recipient_id):
+        self.auth_token = auth_token
+        self.recipient_id = recipient_id
+
+    def send_notification(self, content):
+        pass
+
+class CommunicationManager:
+    def __init__(self, auth_token: str, recipient_id: str) -&gt; None:
+        self.async_comm = AsyncCommunicator(auth_token, recipient_id)
+        self.sync_comm = SyncCommunicator(auth_token, recipient_id)
+
+    async def send_async_message(self, content: str):
+        await self.async_comm.send_message(content)
+
+    async def send_async_image(self, image_path: str):
+        image_file = FSInputFile(image_path)
+        await self.async_comm.send_image(image_file)
+
+    def send_message(self, content: str, use_async=True) -&gt; None:
+        if use_async:
+            asyncio.create_task(self.async_comm.send_message(content))
+        else:
+            self.sync_comm.send_message(content)
+
+    def send_image(self, image_data, use_async=True) -&gt; None:
+        if use_async:
+            asyncio.create_task(self.async_comm.send_image(image_data))
+        else:
+            self.sync_comm.send_image(image_data)
+
+class SyncCommunicator:
+    def __init__(self, auth_token, recipient_id):
+        self.auth_token = auth_token
+        self.recipient_id = recipient_id
+
+    def send_message(self, content):
+        try:
+            url = f'https://api.telegram.org/bot{self.auth_token}/sendMessage?chat_id={self.recipient_id}&amp;text={content}'
+            response = requests.get(url)
+            _json_response = response.json()
+        except Exception as e:
+            general_logger.exception(f&quot;Error sending message: {e}&quot;)
+            raise
+
+    def send_image(self, image_data):
+        url = f'https://api.telegram.org/bot{self.auth_token}/sendPhoto?chat_id={self.recipient_id}'
+        files = {'photo': image_data}
+        while True:
+            try:
+                response = requests.post(url, files=files)
+                _json_response = response.json()
+                break
+            except Exception as e:
+                general_logger.exception(f&quot;Error sending photo: {e}&quot;)
+                time.sleep(10)
+
+class AsyncCommunicator:
+    auth_token: str
+    recipient_id: str
+    bot: Bot
+
+    def __init__(self, auth_token: str, recipient_id: str) -&gt; None:
+        self.auth_token = auth_token
+        self.recipient_id = recipient_id
+        self.bot = Bot(token=auth_token)
+
+    async def send_message(self, content: str) -&gt; None:
+        await self.bot.send_message(chat_id=self.recipient_id, text=content)
+
+    async def send_image(self, image_data) -&gt; None:
+        while True:
+            try:
+                await self.bot.send_photo(chat_id=self.recipient_id, photo=image_data)
+                break
+            except Exception as e:
+                general_logger.exception(f&quot;Error sending photo: {e}&quot;)
+            finally:
+                await asyncio.sleep(10)
+
+    async def get_updates(self, offset: int = None, timeout: int = 10) -&gt; list:
+        method_url = f'https://api.telegram.org/bot{self.auth_token}/getUpdates'
+        params = {'timeout': timeout}
+        if offset:
+            params['offset'] = offset
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(method_url, params=params) as response:
+                if response.status == 200:
+                    response_data = await response.json()
+                    updates = [Update(**data) for data in response_data['result']]
+                    return updates
+                return []
+
+    async def handle_update(self, update: types.Update):
+        if update.message:
+            text = update.message.text
+            if text == &quot;/kill&quot;:
+                return True
+            elif text == &quot;/status&quot;:
+                await self.send_message(&quot;System is running.&quot;)
+                return False
+            else:
+                return False
+</code></pre>
+
+<p>I recommend using the async sender for alerts, and if you are recording an error use the blocking one. You don’t want the algorithm to shut down because you raised an exception straight after doing:</p>
+<pre class="codehilite"><code>asyncio.create_task(bot.send_message(“uh oh”))
+</code></pre>
+
+<p>and it never arriving.</p>
+<h4>Monitor v.s. Control Dashboard</h4>
+<hr />
+<p>I always have two types of dashboards: a monitor and a control dashboard. This doesn't mean I always code up a dashboard; sometimes, I never code up either, and sometimes, only one, but I do keep them separated. Why?</p>
+<p>Well, suppose you are only showing monitoring statistics like PNL and trades. In that case, you can be much less strict with the security on it because it can’t actually control the algorithm. Not to mention, you can now use CloudWatch and Grafana, which can’t control the algorithm but are super easy to set up. </p>
+<p>I recommend using one of the two for your monitoring setup. </p>
+<p>Then, for your control dashboard… if you even need one—many people are happy with the CLI, and I often am as well—I modify a JSON file. Sometimes, I’ll have a bot that will only listen to my account, and I can use it to turn it on/off if I’m out and away from my desk.</p>
+<p>For the control dashboard, you have increasingly complex/time-consuming, but more fine-tuned options:</p>
+<ol>
+<li>
+<p>Streamlit (super simple, but not great for live data)</p>
+</li>
+<li>
+<p>Dash (nice in between)</p>
+</li>
+<li>
+<p>React (proper dashboard)</p>
+</li>
+</ol>
+<p>I used to be a streamlit fan, but now, with the progression of Claude 3.5, I can create a lovely React dashboard that doesn’t throw a fit on updates in roughly as much time. That or a Dash dashboard if I am not feeling particularly open to languages other than Rust and Python on the day. Either way, options 2 &amp; 3 are starting to make sense for shitty dashboards nowadays with the creation of LLMs that can have a great solution up in an hour.</p>
+<h4>Class Designs</h4>
+<hr />
+<p>For some reason, I always end up with this exact design pattern:</p>
+<ul>
+<li>
+<p>MainTradingAlgorithm</p>
+</li>
+<li>
+<p>Data Server (This can be 2 parts)</p>
+</li>
+<li>
+<p>Inventory Manager</p>
+</li>
+<li>
+<p>Orderbook Manager</p>
+</li>
+</ul>
+<p>The main trading algorithm owns the InventoryManager and DataServer classes as part of its self-variables. I’ll often call this Trader or MarketMaker. It’s the overall algorithm.</p>
+<p>The InventoryManager does accounting, tracking positions, and allocating capital. Anything to do with the positions that last more than a minute is the domain of the inventory manager. It also handles risk and hedging decisions.</p>
+<p>OrderbookManager is inside of InventoryManager as part of its self variables and tracks limit orders in the book plus handles the event parsing (i.e. given an order update message, how does this affect the state of things). It’s focused on the event level changes and managing limit orders.</p>
+<p>The data server is usually 2 parts (sometimes 3, and rarely 1), one part in Rust, streams the data and then outputs them. If it’s arbitrage, it often has a middle server called the scanner, which finds arbs and then outputs them to the receiver in Python. It’s one part if we do all of this in Python, but if you’re building and HFT crypto algorithm you probably won’t be able to do that too well.</p>
+<p>This way you can have the data streaming and scanning for opportunities (which is like 90% of your latency contribution if you did it all in Python) done in Rust (and this 90% also happens to be like 10-15% of the actual coding work so you can code up the strategy quickly and still stream shit tons of data from many exchanges). </p>
+<p>The useful information such as arbitrage opportunities get received by the data server in Python and put into an event queue that gets read in a forever loop by the main function of the main trading algorithm class.</p>
+<p>This is a great architecture in my view. Streaming some data, thinning it down, into a normalized format with only the necessary information, and even potentially then computing arbitrages off it if that’s part of the strategy doesn’t take that much work to code up in Rust (it’s all the extra bits like notifiers, order tracking, risk management, inventory management - that would take ages in Rust), and you get the best blend of both worlds.</p>
+<p>As for my choices of class structures, that’s a personal habit. I can’t claim it’s superior and I’m more of a researcher who has experience implementing their strategies than a developer so really a suggestion at best, but the hybrid model is the main point I think is worth caring about.</p>
+<p>Thanks for reading. Enjoy the day!</p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+</article>
+</body>
+</html>

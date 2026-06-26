@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpha in reading the contract specs</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Alpha in reading the contract specs</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2025-03-22</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/alpha-in-reading-the-contract-specs</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>A real example of a mispricing stemming from an asset being priced wrong</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><img alt="User's avatar" src="images/7f216c3a7d3f.jpeg" /></p>
+<p>Discover more from The Quant Stack</p>
+<p>Articles about cool quantitative research </p>
+<p>Over 23,000 subscribers</p>
+<p>Subscribe</p>
+<p>By subscribing, you agree Substack's <a href="https://substack.com/tos">Terms of Use</a>, and acknowledge its <a href="https://substack.com/ccpa#personal-data-collected">Information Collection Notice</a> and <a href="https://substack.com/privacy">Privacy Policy</a>.</p>
+<p>Already have an account? Sign in</p>
+<h1>Alpha in reading the contract specs</h1>
+<h3>A real example of a mispricing stemming from an asset being priced wrong</h3>
+<p><a href="https://substack.com/@quantarb"><img alt="Quant Arb's avatar" src="images/6baa73a2bda0.jpeg" /></a></p>
+<p><a href="https://substack.com/@quantarb">Quant Arb</a></p>
+<p>Mar 22, 2025</p>
+<p>24</p>
+<p>2</p>
+<p>Share</p>
+<h3>Introduction</h3>
+<hr />
+<p>Often you can find an edge where others have made assumptions simply by reading the contract specification carefully. Today, we’ll walk through one example of this which causes options market makers to misprice their options. There is also the explanation that they are fully aware of this, but can’t be bothered to develop a model to fix it since this is a rather small mispricing, but it’s a clear case where options trade at a quarter to a third of their value in some cases.</p>
+<p>This will be a short article as I’ve already written my main article for the day, and the effect doesn’t really need a deep dive into options pricing. It’s an explanation of where the mismatch is and how to correctly price it… not much more needed so it’s a short article.</p>
+<p><a href="https://www.algos.org/p/why-is-my-backtest-wrong"><img alt="Why is my backtest wrong?!" src="images/65f4e0492a4c.gif" />Why is my backtest wrong?<img alt="Quant Arb" src="https://substack.com/profile/101799233-quant-arb" />·March 22, 2025[Read full story](<a href="https://www.algos.org/p/why-is-my-backtest-wrong">https://www.algos.org/p/why-is-my-backtest-wrong</a>)</a></p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<p>Subscribe</p>
+<h3>How it works</h3>
+<hr />
+<p>With options on crypto exchanges, they all settle to a TWAP for the major exchanges. However, almost all market makers will treat them as if they expire at the last trade price so they get more and more mispriced as they head towards expiry. </p>
+<p>A lot of market makers will factor in the accumulated prices so far since the exchange will have a feed for the expected settlement price which most MMs will use as their underlying price for the option, and this expected settlement price will factor in the TWAP value so far so this part is factored in and there is no trade here.</p>
+<p>However, when you settle to a TWAP the volatility of the option is effectively halved. This is a rough proxy but based on my testing I found it usually ends up around half the volatility. This affects OTM options the most, but we are talking about options that are about to expire in a matter of hours, so there is a trade off between mispricing amount and whether this thing has any quotes left on it.</p>
+<p>Usually just slightly out of the money is optimal for this liquidity vs mispricing trade-off. Keep in mind the ask will be 2x the price of the bid on a lot of these options.</p>
+<h3>A quick Monte Carlo</h3>
+<hr />
+<p>Running a quick Monte Carlo model, we can see that various discounts are revealed:</p>
+<p><a href="images/9cbf78cdfe93.png"><img alt="" src="images/a3fab46d5858.png" /></a></p>
+<p>This is the output of 2 different models I developed to price these options, both based around Monte Carlos. </p>
+<p><a href="images/4b0eddcbb283.png"><img alt="" src="images/737fbc0fa89d.png" /></a></p>
+<p>I made them both intentionally conservative. If it says 75% discount, it’s probably about twice as bad as that, but I didn’t want to be doing it wrong in the other direction.</p>
+<p>I factored in the incredibly high volatility risk premium behind these options that are high gamma near expiry as well so you would likely collect this edge, although this comes with tails so not sure I would consider that a standalone strategy.</p>
+<h3>The Caveat</h3>
+<hr />
+<p>Sadly, there is a caveat here since you need to be willing to short a very high gamma option (most of these are overpriced since they are trading at 2x their implied vol as they should be). This is awful on your margin so you can only get so much efficiency. </p>
+<p>The options are also fairly illiquid, it’s the type of alpha where you set up a pricing script with a telegram bot then manually pick off the market makers pricing these things. </p>
+<p>You are still selling a nasty tail so not many are interested in that. I can’t say this is an immense alpha (if it was more actionable this would probably be a paid article), but it’s an interesting example about how market makers on Deribit either can’t be bothered or don’t think to price in this TWAP settlement into the volatility surface. </p>
+<p>The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<p>Subscribe</p>
+<p><a href="https://substack.com/profile/87539559-a-young"><img alt="a young's avatar" src="images/24100cc295ef.png" /></a><a href="https://substack.com/profile/212607626-kuba"><img alt="kuba's avatar" src="images/94aacb91f984.png" /></a><a href="https://substack.com/profile/3002234-sasha-fang"><img alt="Sasha Fang's avatar" src="images/cc52de46355f.png" /></a><a href="https://substack.com/profile/108287441-gabriel"><img alt="Gabriel's avatar" src="images/a689c163a5a6.png" /></a><a href="https://substack.com/profile/101799233-quant-arb"><img alt="Quant Arb's avatar" src="images/9b14a863179f.jpeg" /></a></p>
+<p>24 Likes∙</p>
+<p><a href="https://substack.com/note/p-159176559/restacks?utm_source=substack&amp;utm_content=facepile-restacks">2 Restacks</a></p>
+<p>24</p>
+<p>2</p>
+<p>Share</p>
+</article>
+</body>
+</html>

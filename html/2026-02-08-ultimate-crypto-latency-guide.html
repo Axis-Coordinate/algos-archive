@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Crypto Latency Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Ultimate Crypto Latency Guide</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2026-02-08</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/ultimate-crypto-latency-guide</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Implementing and understanding latency optimisation infrastructure</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/565ff0d76f27.jpeg"><img alt="10 Charts Show Trading on Early Info - Business Insider" src="images/a1e248b343ba.jpeg" /></a></p>
+<h3>Introduction</h3>
+<hr />
+<p>When it comes to HFT strategies, you often reach a point where latency cannot be ignored. Simply having great alphas and modelling is not enough — you also need to be competitive on the latency front. Most of this is concentrated on the cloud network engineering front, so in today's article, we catalogue many different latency tricks.</p>
+<p>We will dive into &gt;10 different latency optimisations in this article to help you improve your latency setup.</p>
+<p>Latency touches all elements of HFT strategies. For arbitrage strategies you are often competing against a couple other participants on any given market and having even a mild latency edge is often enough to thrash the competition, ensuring you aren’t left picking up their crumbs. It’s not just arbitrage strategies that need low latency, market making (which most arbitrage strategies eventually lead to since making into opportunities is the optimal approach), needs low latency in order to ensure your quotes are up to date with the latest estimates of global fair value (which a large part is just data feeds of various exchanges and getting that fast). Even statistical strategies often have latency requirements when they’re run on the HFT timescales.</p>
+<p>This is all to say that latency is extremely important in the HFT world, and by not learning how to optimize it — you are missing out on a valuable skill which can make the difference between thrashing your competition.</p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Latency Tricks:</p>
+<ol>
+<li>
+<p>WS Rotate</p>
+</li>
+<li>
+<p>FIX feed </p>
+</li>
+<li>
+<p>Machine Gun Orders</p>
+</li>
+<li>
+<p>Modify and cancel+new </p>
+</li>
+<li>
+<p>Limit modify</p>
+</li>
+<li>
+<p>Private feed</p>
+</li>
+<li>
+<p>Limit IOC Spam</p>
+</li>
+<li>
+<p>Overlapping feeds</p>
+</li>
+<li>
+<p>Base URLs</p>
+</li>
+<li>
+<p>VIP feed</p>
+</li>
+<li>
+<p>Implied Best Bid/Ask Price</p>
+</li>
+<li>
+<p>Canary orders</p>
+</li>
+</ol>
+</li>
+</ol>
+<h3>Latency Tricks</h3>
+<hr />
+<p>Below is an extensive list of latency tricks. You can get a lot of performance gain from having a fast system, but sometimes you need to go beyond this and optimize the network side of things as well. I will leave the standard compute side optimizations up to the reader as there is plenty of material on this topic publicly available, and instead I will dive into latency tricks that focus on other aspects than computing efficiently. Most of these are not publicly known and this will be to my knowledge the only place on the internet where these tricks are available. These tricks are based on knowledge that I’ve gained whilst optimizing HFT strategies and working on trading desks.</p>
+<h4>WS rotate</h4>
+<hr />
+<p>Let’s start with quite an easy optimization to implement, it involves taking 3 WebSockets for the exact same feed and at some interval, say every 5 seconds, we drop the slowest of the 3, and replace it with a new feed. If you keep doing this, eventually you will get a very fast feed for your fastest feed. The logic behind this is that you climb up the list of who to send the data out to and become one of the first people to get the data sent to them.</p>
+<h4>FIX</h4>
+<hr />
+<p>Often exchanges will have a FIX feed much like exchanges from TradFi. The FIX feed isn’t necessarily going to be faster for all actions but for certain actions it is often faster than WebSockets and for others it may be slower. On one exchange I remember the FIX feed was faster for cancelling or modifying orders but the WebSocket feed was faster for new orders. I’m not sure I can give a good explanation as to why that was the case, but it was about 10% faster and consistently so. So if there is a FIX feed, it’s worth implementing it as well as the WebSocket feed.</p>
+<h4></h4>
+<h4>Machine Gun Orders</h4>
+<hr />
+<p>Let’s say we need to place an order and want to ensure it gets there as fast as possible, how can we optimize our latency? Well, we have an interesting phenomenon with our latency because of how jitter works in the cloud. In equities markets, if you send and order and then send another the second one will always get there after the other so there’s no element of luck in it, but when you’re working in the cloud there is a random amount of noise which can make an order faster or slower compared to peers.</p>
+<p>How can this be taken advantage of? Send tons of orders, and ensure that all the other orders will fail after the first had arrived. To ensure failure is fairly simple, just set them all to have the same client order id. This depends on the exchange, but for lots of exchanges you cannot have the same client order id. Some exchanges like KuCoin are a strange in-between where you cannot have the same client order id for orders sent within a few seconds of each other. Regardless, for exchanges where this works you can spam tons of orders and get the best side of the jitter every single time whereas everyone else has their orders held back by jitter.</p>
+<p>There is a balancing act here though. If we send 100 orders every time we want to send 1 order we will quickly destroy our rate limit, so I find 5 is about the optimal amount.</p>
+<p>This logic also applies to order cancellations, which are by default idempotent meaning that you can send as many as you want but that order is only going to get cancelled once. Roughly 5 works as well for this, you ideally want a YAML/JSON file where this is a parameter (or whatever parameter tracking approach you use for your trading system), that way you can increase or lower it easily when you use too much of the rate limit or if you’ve got some spare.</p>
+<h4>Modify &amp; Cancel+New</h4>
+<hr />
+<p>Often you have the choice between sending a cancel order and then after that sending a new limit order <em>OR</em> instead you can use the modify endpoint which will do the same thing. In extreme tail events when the modify endpoint is clogged up (since it’s the default route for most MMs) then doing a cancel and then a new order is much more effective.</p>
+<p>If you combine this with the machine gun trick we discussed earlier and spam new orders using the same client order id, then you get an extremely fast modify and it can often beat the actual modify endpoint when others are trying desperately to use it.</p>
+<h4>Limit modify</h4>
+<hr />
+<p>This is one of the older tricks but for certain exchange it still works. It works for BitMEX and it used to work for FTX before they shut down.</p>
+<p>What you do is you place a limit order very wide such that it will never get filled, making sure that it is not a post only order and can be filled as a taker. Then you modify the price of the order such that it fills as a taker order (ie it’s better than best bid ask, ask for buy order bid for sell order). This will make you skip the queue and get filled super fast. The logic behind why this work is that some trading engines use the original creation time and neglect the modify time when calculating queue priority; this gives those who place early but modify later an edge.</p>
+<h4>Private feed</h4>
+<hr />
+<p>As we have discussed in previous articles, on many exchanges the private feeds are sent out before any other feeds. When I say private feeds I mean feeds that tell you about events that are specific to you such as the status of your orders or your trade fills.</p>
+<p>Much like how we were able to infer the current implied best bid ask (see section below for more detail on this) from trade prices we can do the same from our own fills and on most exchanges we know that we are one of the very few people that have this information.</p>
+<p>Even if you are quoting on another exchange, you will be pricing based on the top exchanges — especially Binance so by having orders there you’ll have the latest updates about price and often before anyone else.</p>
+<h4>Limit IOC Spam</h4>
+<hr />
+<p>This trick is mostly relevant for arbitrage strategies or when you know that if the price reaches a certain level you will want to hit that order really fast. So in this case you will spam limit IOCs every X ms at that price so that if an order is placed at this price you will be filled before anyone even has the chance to receive the data packet that this has occurred. This is not a super popular trick, however, as it will absolutely destroy your rate limit. There are more advanced tricks not discussed in this article which allow rate limit bypasses or you can negotiate really high rate limits directly with the exchange and then this trick becomes fairly useful, but until the rate limit issue is minimized the trick isn’t <em>THAT</em> helpful.</p>
+<h4>Overlapping Feeds</h4>
+<hr />
+<p>Most people assume that if there is a 100ms feed and a 500ms feed that the 500ms feed is redundant to the 100ms feed, but this assumes that the messages are perfectly aligned which is often not the case. If they are 50ms misaligned then you could get an update 50ms before everyone else on the 100ms feed just by also tracking the 500ms feed. Wherever possible, you should pick up a feed even if you think that it will be made redundant by a lower frequency feed. There are exceptions to this, of course, and it is silly to start picking up 1-minute bar feeds, but there’s nothing wrong with grabbing everything up to the 1s feed in my view. It’s a really easy way to improve your latency.</p>
+<h4>Base URLs</h4>
+<hr />
+<p>Using Binance (Spot) as an example, we already have multiple endpoints for REST requests:</p>
+<ul>
+<li>
+<p>https://api.binance.com</p>
+</li>
+<li>
+<p>https://api-gcp.binance.com</p>
+</li>
+<li>
+<p>https://api1.binance.com</p>
+</li>
+<li>
+<p>https://api2.binance.com</p>
+</li>
+<li>
+<p>https://api3.binance.com</p>
+</li>
+<li>
+<p>https://api4.binance.com</p>
+</li>
+</ul>
+<p>Ideally, you should have a script running which tests which of these endpoints is currently the fastest and switches your default endpoint to the fastest one. If you are even more serious about your latency, you can select the top ones (or even all of them) and stream WebSockets from each of them. Ensure that you don’t overload your network card by doing this though (you will need to profile this) because it can actually end up making you much slower if you do this.</p>
+<p>You may want to collect the data for which one is fastest over a long sample period because it isn’t really going to matter which one is fastest on average (they all are very close for this) - where they differ the most is actually in their tail latencies and this is what you’ll want to monitor. Tail latencies are when you want to trade the most and when the majority of PnL is lost / made, the mean latency usually means very little for any given base url. </p>
+<h4>VIP Feeds</h4>
+<hr />
+<p>For a lot of exchanges, there is a base URL which is available only to traders with a certain VIP level. This base URL tends to be roughly the same speed as the other base URLs, but it tends to be a bit faster when it comes to tail latencies and as a result is worth having integrated if you can get access to it.</p>
+<h4>Implied Bid/Ask Price</h4>
+<hr />
+<p>You should also track something I call the implied bid/ask price. If there was a buy trade (buy aggressor, meaning it hit the ask) then you set your implied ask price to the price of this trade. Similar for sell trades (sell as the aggressor, meaning it hit the bid) where you set your implied bid to the price of the sell trade. This is useful because the trade feed is sent out before the quote feed is sent out. In fact, in the order of data being sent out there is:</p>
+<ol>
+<li>
+<p>Private endpoints (updates on your own orders)</p>
+</li>
+<li>
+<p>Trade feed</p>
+</li>
+<li>
+<p>Orderbook deltas</p>
+</li>
+<li>
+<p>Quotes</p>
+</li>
+<li>
+<p>X level snapshots</p>
+</li>
+</ol>
+<p>Quotes is basically a 1 level snapshot feed so is sent out only slightly before the rest of the snapshots, and the snapshots are fairly slow to get sent out. Private endpoints are not always sent out first (it depends on the exchange), but they often are. We will dig into this a bit more in one of the next latency tricks because it’s useful to us. </p>
+<p>Sometimes you can get mismatches between the actual best bid/ask and the implied best bid/ask if they put OTC trades into the trade feed from their RFQ platform or do other weird things like this so it is worth keeping best bid/ask and your implied best bid/ask as separate fields (you can track the deltas between these two as a type of system health metric as well), but generally I would treat implied bid/ask price as if it’s the real bid/ask price and use it to form my midprice I quote around. </p>
+<p>This is one of the easiest and best performing latency tricks of them all.</p>
+<h4>Canary Orders</h4>
+<hr />
+<p>Often we aren’t actually profitable on the big exchanges like Binance, Okex, and Bybit, but we are profitable on the smaller exchanges. If we are trading a large book and making lots of money on other exchanges then it suddenly becomes worthwhile to place small orders on the bigger exchanges to take advantage of the previously mentioned private feed trick. These orders, which exist simply to give us information about the current implied price, are called canary orders (like canaries in a coal mine). </p>
+<p>You do need to be careful when placing these orders though. A lot of people will simply place orders at the minimum possible size and think that this is perfectly fine. However, the exchanges don’t like canary orders and will get mad at you if you have a poor cancel to fill ratio. Ensure that you are quoting at least $125 USD for Okex and $100 for Binance. These are the numbers that Binance stops giving you shit for canary orders if your orders have at least this much USD size behind them. Sure, you can post as low as $10, but you’ll get your API limited (or account suspended) because you’ll trigger their market manipulation alarms (even though this isn’t against any legal rules and counts as behaving yourself). It’s wise to ensure that your canary orders meet the minimum size. Some exchanges won’t have this like Bybit (Bybit generally cares less about this sort of stuff) so just keep it in mind when you are trading.</p>
+<h4></h4>
+</article>
+</body>
+</html>

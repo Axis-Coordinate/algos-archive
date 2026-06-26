@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why is my backtest wrong?!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Why is my backtest wrong?!</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2025-03-22</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/why-is-my-backtest-wrong</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Every way you could've messed up compiled into one article</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Introduction</h3>
+<hr />
+<p>It’s a rite of passage in the quant world to fuck up your first backtest. I remember a particularly good backtest early on in my career that promptly sent me to the Lamborghini dealership website to size up which model I would soon be buying. Spoiler! This strategy did not buy me a Lamborghini.</p>
+<p>In this specific case, I had messed up the timestamps on my data collection so data from the future was randomly stitched with current data, creating some too good to be true mean-reversion. It looked a little bit like this:</p>
+<p><a href="images/31c642e69ca9.png"><img alt="" src="images/f8c68d152a46.png" /></a></p>
+<p>Which was really just two series (with the gaps filled in using red/green) that had stitched together poorly in my data scraper:</p>
+<p><a href="images/8d8acc6d905c.png"><img alt="" src="images/037fcedbe55e.png" /></a></p>
+<p>That was a fun lesson, and one I would learn many more times after. If your reaction upon seeing an amazing backtest isn’t “ah man what broke” then you haven’t seen enough of them to know better. There is no exception to this. Every entirely straight line I have ever generated in backtest has had some flaw, and the only super straight lines that actually realized in production weren’t backtest-able in the first place (market making). I’ve certainly had backtests that looked good and turned out to be good, but they never looked so good it was unbelievable - I certainly didn’t google any Lambos.</p>
+<p>In the article today, I am going to dive into 20 different ways you can ruin your backtest. This isn’t so much meant to be a Wikipedia article on what overfitting is, since I’m sure you can find that easily, but more an example of many issues and caveats I’ve had to deal with throughout my career so that you can also be aware of them too. </p>
+<h3>Index</h3>
+<hr />
+<ol>
+<li>
+<p>Lookahead</p>
+</li>
+<li>
+<p>Overfitting</p>
+</li>
+<li>
+<p>Survivorship Bias</p>
+</li>
+<li>
+<p>Fees </p>
+</li>
+<li>
+<p>Spread</p>
+</li>
+<li>
+<p>Market Impact</p>
+</li>
+<li>
+<p>Latency Assumptions</p>
+</li>
+<li>
+<p>Limit Order Assumptions</p>
+</li>
+<li>
+<p>Adversity Assumptions</p>
+</li>
+<li>
+<p>Short Borrow</p>
+</li>
+<li>
+<p>Funding Rates</p>
+</li>
+<li>
+<p>Withdrawal Issues</p>
+</li>
+<li>
+<p>Broken API</p>
+</li>
+<li>
+<p>Assumed Infinite / Free Leverage </p>
+</li>
+<li>
+<p>Tick Size Issues</p>
+</li>
+<li>
+<p>Ignoring Gaming Dynamics</p>
+</li>
+<li>
+<p>Assumed Trading Price is Trade-Able</p>
+</li>
+<li>
+<p>Trade Price Bid/Ask Bounce</p>
+</li>
+<li>
+<p>OTC Trades on Main Feed</p>
+</li>
+<li>
+<p>Wash Flow  </p>
+</li>
+</ol>
+<h3>Lookahead</h3>
+<hr />
+<p>This is by far the most common cause of bad backtests. I’ll walk through some key ways that this can happen:</p>
+<p>Some smoothing algorithms like <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter">Savitzky–Golay</a> actually have lookahead inherent to their logic so whenever you are using a niche smoothing method, just make sure of this - it’s a mistake I’ve made before and it’s cost me a load of time figuring out what happened:</p>
+<p><a href="images/c7389c8adf9f.gif"><img alt="" src="images/445820629ad8.gif" /></a></p>
+<p>Another common way to introduce lookahead bias is when resampling. We will look below at the default version of pd.DataFrame.resample() compared to the correct way to do it:</p>
+<p><a href="images/ed5fbf1551df.png"><img alt="" src="images/f838e9ef3b03.png" /></a></p>
+<p>If you use resample with the default arguments (Default: label=’left’, closed=’left’) then you get the example shown above which contains lookahead. We see that the high of 105 occurs at 04 but the timestamp is 05 — thus we have lookahead. When doing resample, always pass in the arguments label=’right’ and closed=’right’. Otherwise your timestamps will be at the open of the bar, which can easily lead to lookahead bias occurring, especially after merging dataframes.</p>
+<p>There are about a trillion different ways that lookahead bias can occur and it usually produces a very strong effect in your data, so it’s the most likely answer when you have a really good PnL curve. The only other error that will make a curve look insanely good (completely straight line) is execution based assumptions that are wildly off such as limit fills + rebate + zero adversity + instant fill.</p>
+<h3>Overfitting</h3>
+<hr />
+<p>Overfitting is also fairly common. People like to tweak parameters until they eventually find something and a lot of the advice related to avoiding overfitting is fairly sensible. Always keep some data spare that you haven’t tested on. Whether that’s some newer data, a load of other assets, ideally both even, and then right at the end you can validate on this and if it fails you’ve used it and you call it a day. You need some piece of data ideally that you don’t play around with until the end.</p>
+<p>Slowly increasing the amount of data you use until you are done the analysis helps. Visually, inspecting the backtest helps a lot as well. You can tell by how smooth the PnL curve is and how many trades were taken whether a curve has a high level of robustness. If all the PnL was made in 3 large jumps and it was flat otherwise then that means we have 3 events that made all our PnL. 3 isn’t many… You can have lots of trades and very few events that make the money, which can still happen in working strategies, positive skewness is a thing afterall, but it means you need to down-weight your mental view of how confident you are in this strategies ability to perform OOS (out of sample).</p>
+<p>Double check out of sample very aggressively with not just one but 2 out of sample sets (validation set) when working with machine learning models because even after you fit it, you’ll do hyperparameter tuning.</p>
+<p>On the subject of parameter tuning, if you make small-ish changes in your parameters and the overall trend of the curve flips completely then your alpha isn’t likely to be robust. You may see performance change a bit, but for great alphas the signal will shine through regardless of exact parameter choices. I.e. you can be very dirty on the machine learning, portfolio construction, and parameterization components and it’ll still make money.</p>
+<h3>Survivorship Bias</h3>
+<hr />
+<p>This is one that is not always worth preventing. Yes, you can use a dynamic universe, but guess what? That’s complicated and a real pain in the ass to code up. At some point you have to say — maybe I’ll only fix this one where it makes sense. If you have a fancy backtester then this makes sense to have in there, but if it’s a one off simulation, then I’m not sure this one always is worth the extra effort. </p>
+<p>If you are doing long only momentum, best believe you will be bringing out that dynamic trading universe because survivorship bias will genuinely ruin your results. </p>
+<p>If you are on the other hand doing a super delta neutral strategy or one that is directional but with equal long to short exposure over it’s history (which is much easier to check for than coding up a dynamic universe) then it’s worth skipping. I have very rarely had issues with survivorship bias.</p>
+<p>It’s not an extremely strong force either so if you are working with 2 years of data and trying to find 3 Sharpe strategies, it isn’t going to be the thing ruining your backtest. </p>
+<p>If you are doing 40 year backtests for heavily long strategies then this can destroy you backtest and rip the results to bits. It entirely depends on what you are simulating and whether we are doing it on long enough time horizons where it can make up a very large part of the total PnL at the end. </p>
+<p>General tips here:</p>
+<ul>
+<li>
+<p>If you are direction neutral you can skip it</p>
+</li>
+<li>
+<p>Affects longer term strategies more</p>
+</li>
+</ul>
+<h3>Fees</h3>
+<hr />
+<p>Everyone loves to mess around with fees and assume wildly inaccurate fees at the start of their careers. Finding alphas that barely beat fees isn’t very valuable because they won’t survive the market impact side once you actually want to trade them with size. If it only takes a couple of bps to kill an alpha, especially one that isn’t HFT then you are unlikely to have a very good alpha. That said, plenty of HFT alphas survive off a couple of bps of edge, but that’s simply because they make lots of trades. If you are doing MFT strategies, demand more edge out of your strategies.</p>
+<p>You can usually find the fees for exchanges online, but if you are unsure, go on the higher side. You’ll need to throw in some extra bps anyways just to demonstrate you can chuck some serious money in there. </p>
+<p>And if you are doing HFT, then it’s expected you know everything about that specific exchange because that is what will trip you up over. Do your research there.</p>
+<p>Apart from the wrong fees, sometimes people ignore rounding issues, which can be a big deal for smaller trades. This is mostly an HFT arbitrage issue, but if they round to a decimal place then slight taker arbitrages can go away. This was an issue on occasion when I was running triangular arbitrage strategies a while back on Binance.</p>
+<h3>Spread</h3>
+<hr />
+<p>Spread can often be underestimated, but it’s not usually an issue with the actual parameter itself, but that when people want to trade the market is very volatile and the spread becomes wider than average. It’s generally best to just pull up quote data, resample to your bar frequency and then go from there. It’s not a lot more work to do and you won’t have to deal with spread issues.</p>
+<p>You also don’t want to have to write out a spread cost for every asset you trade — in fact most people will have some flat spread cost they add to their trading fees, but this becomes very inaccurate for smaller assets. You just end up overdoing it for the bigger names and underdoing it for smaller names.</p>
+<h3>Market Impact</h3>
+<hr />
+<p>Market impact is usually just a capacity estimation problem. An alpha isn’t very useful if you can’t put any size into it. You need to simulate a minimum amount of price impact (which I usually just add a multiplier onto the spread for and call it a day) if you want to be able to trade it. </p>
+<p>Wouldn’t say market impact is one of the more common ones, but in general, people tend to overestimate capacity. You don’t realize your capacity sucks until you actually have to dig into it and realize it’s terrible. Being a bit more conservative is wise, a lot of things have less liquidity than you think.</p>
+<h3>Latency Assumptions</h3>
+<hr />
+<p>This is really only relevant for HFT trades, but it especially gets people who are trying to do cross exchange arbitrages. Latency is fairly hard to model since it isn’t just the network component, there is also the matching engine - and you can’t get historical data for the matching engine time without having traded during that period. In fact, Jump and other large firms collect data by ping-ponging between best bid/ask to collect data regarding fill probabilities and matching engine related times - not to mention their own trading history helps.</p>
+<p>Generally, you should look at tail latency instead of average latency since you will likely want to trade when the latency spikes, but ideally you look at the latency conditional on you wanting to put a trade through using production data. </p>
+<p>Average latency tends to be rather useless, only the latency conditional on wanting to trade — and the best proxy for that is the 99.9% value for it. </p>
+<p>This, of course, requires that you are collecting the data since the latency on data vendors won’t be reflective of what you could get if you bothered to optimize your systems latency. </p>
+<p>Latency is one of those things where collecting your own data matters and testing things in production is one of the only ways to do it. </p>
+<p>That OR you assume a really high amount of latency and if your trade survives that then you’ll probably be fine. If you can prove that your trade survives even the most unlikely assumptions then you should feel free to go ahead with it. </p>
+<h3>Limit Order Assumptions</h3>
+<hr />
+<p>If your trade assumes limit order fills, then things can get tricky. If you are trying to make into an HFT trade then you typically can only verify it by testing in production - there’s been cases where everything lined up, I placed my limit orders and then got no fills despite trades happening in front of my very eyes. Turns out the exchange was faking all of it’s volume, but, oh well, that’s the sort of thing you have to deal with and why doing a live test with something crappy before you build out that fancy trading system is really quite critical. </p>
+<p>You can sometimes look at the trades that hit the tape, and see where they would’ve impacted in the book. If they are big enough of a trade, then you can often assume that you can simply place in the book and simulate fills based off those trades. Anyone paying 50 bps spread by massively impacting the orderbook isn’t thinking about whether they should trade or not based on whether your small order is in the book.</p>
+<p>However, if you are competing for top of the book, then you need to test in production. Any assumption on limit order fill time is also going to vary, instant fills are a big no-no, and you will have an adversity cost to your trading.</p>
+<h3>Adversity Assumptions</h3>
+<hr />
+<p>Speaking of which, we have adversity in all of our maker trades usually. This means that there is an inherent cost to making which isn’t immediately obvious. For every amount you adjust your market makers skew parameter by there will be a cost to the inventory you put on. </p>
+<p>If you are market making into a fairly medium to low frequency trading strategy then it is a reasonable assumption to just take the average cost to put on inventory and use that as your adversity cost.</p>
+<p>If you have a decent system you can usually improve upon taking, but a basic hummingbot type strategy will often get rinsed much worse than taking normally so don’t count on making beating taking.</p>
+<h3>Short Borrow</h3>
+<hr />
+<p>This is a rather simple one and affects spot trading. If you haven’t simulated whether you can even borrow the asset, and the asset is fairly illiquid then your alpha may exist purely because borrow is impossible to get. If you go back to one of my article about trading sports team tokens based on their games, you will see that despite the incredibly high performance - the edge was actually coming from being able to source the borrow on these tokens, not to mention their small capacity.</p>
+<p><a href="https://www.algos.org/p/a-novel-approach-to-frontrunning"><img alt="A Novel Approach to Frontrunning Drunk Brits" src="images/aae4bfc97cd8.png" />A Novel Approach to Frontrunning Drunk Brits[Quant Arb](<a href="https://substack.com/profile/101799233-quant-arb">https://substack.com/profile/101799233-quant-arb</a>)·March 1, 2023[Read full story](<a href="https://www.algos.org/p/a-novel-approach-to-frontrunning">https://www.algos.org/p/a-novel-approach-to-frontrunning</a>)</a></p>
+<p>In equities, you can assume that anything in the S&amp;P500 has borrow available for it, but beyond that you need to buy expensive datasets that can run you upwards of $250,000 for the borrow histories of different assets.</p>
+<p>Similarly, you need to make sure you are simulating the borrow costs. Keep in mind that in crypto, most exchanges round to the nearest hour so if you are looking to flip in and out of positions in spot with minute timeframes between these position changes then you may run into trouble with fees racking up, but honestly at that point you may as well just hold some inventory in spot and try hedge with the future, it’ll be cheaper in the long run either way.</p>
+<p>Borrow costs on spot are much more expensive than funding on futures typically (for crypto) so I recommend trading futures wherever possible (also less fees, more liquidity, etc).</p>
+<h3>Funding Rates</h3>
+<hr />
+<p>Funding rates can pose an issue if they are particularly high, ie you are targeting coins that have had a crazy breakout or if you are expecting to hold them, particularly in the direction of momentum for a reasonable duration of time.</p>
+<p>They also affect seasonality strategies since every time funding pays out the price moves so if you don’t adjust for the funding payments you will believe that there are strong effects for certain hours of the day and the last minute of the hour (these effects are still real but you will not correctly estimate them if you don’t adjust for funding rates).</p>
+<h3>Withdrawal Issues</h3>
+<hr />
+<p>Often, the largest spot arbitrages are for assets where withdrawals have been disabled so they can’t be transferred. This is pretty plan and simple but check this first.</p>
+<h3>API Issues</h3>
+<hr />
+<p>If you measure the toxicity for every asset on an exchange, you’ll find that the ones with the least toxicity are funnily enough the ones where the API is messed up or the data feed seems not to work for some reason. This happens even on big exchanges like Binance sometimes and if one token is having a datafeed issue for any particular reason then the flow will be dumb as a rock but good luck adjusting your orders to trade it without sitting in front of the Binance dashboard and doing it manually (not the worst idea for a strategy, although a very niche one at that).</p>
+<p>On top of this, you will find that the best exchanges to market make on will just shut off their maker API whenever they feel like it. MEXC did this for ages and took all of the (entirely retail flow) to themselves, all whilst kicking off anyone that made any money / being jerks about withdrawals, and this isn’t exactly uncommon — it’s the case with about half of the exchanges on the coinmarketcap rankings, much higher % wise near the bottom even. If you try to do any sort of market making they’ll just turn off your API access, and it’s a nightmare to negotiate with them otherwise. </p>
+<p>I know people where their alpha is just trading through personal accounts because the exchanges don’t allow accounts from institutions since the flow is toxic and if you aren’t from South Korea for example, it’s hard to open an account on certain South Korean exchanges. Then from there they just pick off the market makers with simple arbitrage strategies because they quote like shit (as is expected when their entire counterparty-base is South Korean degens who want to buy Fartcoin because it is above the 73% fib retracement).</p>
+<h3>Assumed Infinite / Free Leverage</h3>
+<hr />
+<p>Often trades based around spreads between assets can have a very small amount of edge in them so require leverage, but if the trade makes 10% a year and leverage is at 8% and you mess up the cost of that loan then you will massively overestimate returns. Similarly if you just arbitrarily let your algorithm set the leverage for the strategy to whatever your portfolio optimizer thinks is optimal then you may end up exceeding the leverage limit allowed.</p>
+<p>For many cross exchange positions you can only get up to 3x without running into event risk issues where if you have a large gain on one exchange, you could get liquidated on the other. Really up to 5x if you are pushing it.</p>
+<p>This is probably one of the less common mistakes as most strategies can be leveraged way beyond what is necessary (most strategies don’t trade cross exchange spreads and instead trade single exchange perps which are super efficient leverage wise), but it is a mistake that occasionally is made nonetheless. </p>
+<h3>Tick Size Issues</h3>
+<hr />
+<p>Make sure you can actually post a price at the price you want. You can’t quote 3.60086928746784 as your price for almost every exchange — there is a minimum amount of rounding.</p>
+<p>This doesn’t really tend to affect you unless you are doing strategies like triangular arbitrage where you end up with small bits of remaining inventory due to tick size mismatches and then you lose a lot of your profit to accumulating loads of random coins which are a pain to then offload. </p>
+<p>It’s not a consideration you would think of normally but we used to have to dump lots of random coins every so often and I probably had about 400 different coins being held in my Binance account at any given time.</p>
+<h3>Ignoring Gaming Dynamics</h3>
+<hr />
+<p>Put quite simply, if you try one-up someone’s order there is a good chance you will get into a bidding war and piss away all of the profit. Sometimes you can’t make into a trade without bidding it away against some other traders algo. </p>
+<h3>Assuming Trade Price is Trade-Able</h3>
+<hr />
+<p>I think this is one of the most common yet easily solve-able mistakes out there. I can never understand why people prefer to use trade bars over bars created from mid price but regardless they seem to be the standard. </p>
+<p>They shouldn’t be YOUR standard however, and wherever possible use mid price instead. </p>
+<p>Why?</p>
+<p>Well, you get fake mean reversion in your data equal to the distance between the bid price and the ask price (at minimum!!). Each trade is either on the bid or ask and between trades it bounces between them, so even if fair value remains constant, the price will bounce around. </p>
+<p>For illiquid assets, this means that you will see fake mean reversion, especially if someone is hammering the book about and the spread is wide. Combine this with use of the average spread instead of the actual bid/ask price at the time of trading and you have a recipe for a disaster of a mean-reversion strategy that looks real but you are actually trying to make the bid/ask spread but as a taker!</p>
+<h3>OTC Trades on the Main Feed</h3>
+<hr />
+<p>Some big exchanges will stick OTC trades on the main feed and this can wreck havoc if you are incorporating them into certain metrics. It’s not necessarily going to break your backtest or make it ‘wrong’ but it may hurt your metrics if a massive OTC clip moves your metric but the open market doesn’t react at all. </p>
+<h3>Wash Flow</h3>
+<hr />
+<p>Fake flow, fake orderbooks, all of it. This is what causes you to waste days of precious work integrating new exchanges and researching trading opportunities only to find out that no one actually trades on there. </p>
+<p>I remember one exchange was ranked #1 for volume and was called BTCex and claimed 400 billion in BTC volume, 100 billion in ETH volume and 3 million in total volume for every other coin. Not all of them are this blatant, but test with a quick script before you spend lots of time if you think it might be dodgy. Even top 20s suck. </p>
+<p>Poloniex and Ascendex have a lot of wash flow for example.</p>
+</article>
+</body>
+</html>

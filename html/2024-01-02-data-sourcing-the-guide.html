@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Sourcing - The Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Data Sourcing - The Guide</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-01-02</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/data-sourcing-the-guide</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>A guide to scraping / finding data for all your quant needs</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/71301956f23c.png"><img alt="" src="images/a293883c391f.png" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>This article has a bit of a focus on digital assets as this is the industry I work in and thus can provide a very comprehensive overview of, but I also try to cover as much alternative options as possible - I am quite the data hoarder afterall.</p>
+<p>We place our data into 4 tiers of pricing:</p>
+<ol>
+<li>
+<p>Free </p>
+</li>
+<li>
+<p>Dirt Cheap </p>
+</li>
+<li>
+<p>Retail Friendly</p>
+</li>
+<li>
+<p>Institutional</p>
+</li>
+</ol>
+<p>After purchasing a subscription for backtesting / research purposes, it is wise to be proactive about scraping. It is often the case that beginners simply want this data for a project and not for continued use in production / rapidly changing research where up-to-date data is necessary. Thus, I recommend that you scrape as much data as possible before the subscription runs out. </p>
+<p>If you enjoy this article or my tweets, feel free to become a free or paid subscriber. I put out long form content where I share research &amp; knowledge derived from my experiences as a practitioner.</p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction</p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Crypto HFT Data</p>
+</li>
+<li>
+<p>Crypto Alternative Data</p>
+</li>
+<li>
+<p>Tiingo [Dirt Cheap]</p>
+</li>
+<li>
+<p>Polygon [Retail Friendly]</p>
+</li>
+<li>
+<p>WRDS [Academic Only]</p>
+</li>
+<li>
+<p>News &amp; Sentiment Providers [Institutional]</p>
+</li>
+<li>
+<p>IBKR [Dirt Cheap]</p>
+</li>
+<li>
+<p>QuantConnect [Dirt Cheap]</p>
+</li>
+<li>
+<p>List of additional providers </p>
+</li>
+</ol>
+<h4>Crypto HFT Data</h4>
+<hr />
+<p>Digital assets have one great element of being very low barrier of entry. This is similarly the case for the data as well. You can get any live data you want directly from the exchange, free of charge. Most exchanges will have access to historical data, but will not provide extremely granular data such as orderbooks. Binance has a whitelist program where if you have high enough VIP they’ll let you download it, but it’s slow and frankly a paid option is still better.</p>
+<p>Hence, there are two main providers. Tardis (tardis.dev) and Kaiko (kaiko.com). Tardis is simply better, but Kaiko is simply broader. If Tardis has it, use Tardis, if Tardis doesn’t use Kaiko.</p>
+<p>Tardis has better support, better quality of data, better tooling around that data, and all around I recommend them more (they’ve always been my preferred route).</p>
+<p>That said, Kaiko is a great option - Tardis is just really hard to compete with. Kaiko finds it’s niche in having a much broader range of data. If Tardis doesn’t have it - Kaiko will. </p>
+<p>As an extra note, if you want to scrape free data, use CCXT as it will make it much faster / normalized and if you want a live feed of normalized quotes / orderbooks / generally normalized HFT data - then the Tardis machine is a free and high quality option (does not require a Tardis subscription to use).</p>
+<p>Kaiko is more expensive and aimed only at institutions, whereas Tardis offers packages for academic, solo, and institutional players. </p>
+<p>If Tardis is still too expensive, then crypto lake (crypto-lake.com) offers data at a much cheaper rate, but with less coverage.</p>
+<h4>Crypto Alternative Data</h4>
+<hr />
+<p>Glassnode is a very affordable option, however, there is no longer an API for the $40 a month option. This of course doesn’t pose much of an issue if you simply scrape the graphs on the website:</p>
+<p>For crypto fundamentals otherwise, I recommend Santiment.</p>
+<h4>Tiingo</h4>
+<hr />
+<p>Tiingo is just great. There’s not much more to say. Easily the best value for money. $10 a month gets you access to most asset classes OHLCV data, fundamental data, and news data.</p>
+<h4>Polygon</h4>
+<hr />
+<p>Polygon is like Tiingo but more expensive and with more data. It’ll have the data that’s a lot larger like options / equities HFT data (historically), but it’ll cost more. Luckily, still within retail ranges, but this is a fair bit more - still quite a great deal.</p>
+<h4>WRDS</h4>
+<hr />
+<p>WRDS - Wharton Research Data Services gives an insane amount of data, and of course it is free, but only if you have access (through a university). I have sure scraped my fair share of this website using keys from friends - it’s a treasure trove of data. </p>
+<p>Sadly, the data is not going to be quite the quality needed for accurate HFT research, such as the TAQ dataset, which isn’t a high quality as the ones institutions will have access to. You can still get a lot done with it, but there is ample evidence in the literature of people underestimating liquidity when compared to those who used better, institutional, datasets.</p>
+<p>The range of alternative data sources was very interesting though. Millions of employee profiles scraped off LinkedIn, accounting filings (GBs), all sorts.</p>
+<h4>News &amp; Sentiment Providers</h4>
+<hr />
+<p>Tiingo has a very well priced feed, but it is very basic. </p>
+<p>For institutional players, Ravenpack &amp; Alexandria Research are two of the main options.</p>
+<p>Each will set you back around $60,000 for the crypto news subscription or $100,000 for equities news subscriptions.</p>
+<p>These analyze any sorts of media, label them as to what they relate to, give them sentiment scores, and pass the data on to you with very low latency. </p>
+<p>The equities datasets used to be very profitable a while back, but not the case anymore from my current understanding. </p>
+<h4>IBKR</h4>
+<hr />
+<p>IBKR is extremely cheap as a retail user, only $5-10 a month for certain subscriptions, but the main downside is that it takes ages to scrape.</p>
+<p>Sure you can get an expensive options data subscription for $10 a month, but it’ll take you a whole month just to scrape it.</p>
+<p>The API is insanely slow and the rate limits mean that you will probably need to set up an AWS server just to scrape this from IBKR. Maybe things have changed since I last scraped the website, but I still hear complaints so I doubt it.</p>
+<p>That said, if you’ve got time to scrape and money to save - IBKR is THE place to go.</p>
+<h4>QuantConnect</h4>
+<hr />
+<p>QuantConnect is a unique option because whilst it has a lot of interesting alternative datasets / generally a very high quality of data, and at low cost as well, it does come with the caveat that you can’t take it outside of the platform.</p>
+<p>You will need to deploy and research all your strategies in their platform.</p>
+<p>That said, QuantConnect is not a bad place to deploy strategies as a retail trader, and it makes the process much faster - it isn’t great for research though and you’ll certainly have a lot of hindrance there because of it.</p>
+<h4>List of Additional Providers</h4>
+<hr />
+<p>Here is a quick list of sources I have never used before, but may come in handy for the avid data searcher.</p>
+<p><a href="https://firstratedata.com/">https://firstratedata.com/</a></p>
+<p><a href="https://tickstory.com/download-tickstory/">https://tickstory.com/download-tickstory/</a></p>
+<p><a href="https://quantpedia.com/links-tools/?category=historical-">https://quantpedia.com/links-tools/?category=historical-</a></p>
+<p><a href="http://www.spikeet.com/">www.spikeet.com</a></p>
+<p><a href="http://www.marketstack.com/">www.marketstack.com</a></p>
+<p><a href="http://www.nanex.net/">www.nanex.net</a></p>
+<p><a href="http://www.intrinio.com/">www.intrinio.com</a></p>
+<p><a href="http://www.fmpcloud.io/">www.fmpcloud.io</a></p>
+<p><a href="http://www.algoseek.com/">www.algoseek.com</a></p>
+<p><a href="http://www.alphavantage.co/">www.alphavantage.co</a></p>
+<p>If you are a hedge fund / well funded institution, here is a quick list of the expensive, but institutional quality options (outside of crypto, Tardis/Kaiko are the best options if in crypto as an insto):</p>
+<ol>
+<li>
+<p>Bloomberg</p>
+</li>
+<li>
+<p>Refinitiv</p>
+</li>
+<li>
+<p>MorningStar</p>
+</li>
+<li>
+<p>Reuters</p>
+</li>
+<li>
+<p>FactSet</p>
+</li>
+<li>
+<p>FIS</p>
+</li>
+</ol>
+<p>Databento is also worth checking out :)</p>
+</article>
+</body>
+</html>

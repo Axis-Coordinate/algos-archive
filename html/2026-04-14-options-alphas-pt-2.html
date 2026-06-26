@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options Alphas Pt. 2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Options Alphas Pt. 2</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2026-04-14</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/options-alphas-pt-2</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>Two more options alphas, and combining our alphas</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="https://www.algos.org">The Quant Stack</a></p>
+<p><a href="https://www.algos.org/p/options-alphas-pt-2">Options Alphas Pt. 2 </a></p>
+<p>Two more options alphas, and combining our alphas</p>
+<p><a href="/@quantarb"><img alt="Quant Arb's avatar" src="images/6baa73a2bda0.jpeg" /></a></p>
+<p><a href="https://substack.com/@quantarb">Quant Arb</a></p>
+<p>Apr 15, 2026</p>
+<p>∙ Paid</p>
+<hr />
+<h3>Introduction</h3>
+<hr />
+<p>In the last article, we covered 3 working alphas, 2 weaker alphas and one strong alpha. Now we will present a medium strength alpha and a second strong alpha then show how to combine them to form a very profitable trading strategy both before and after real world trading costs. In the final part to this series (the next article), we will explain how to trade and monetise the alphas although the explanation today will be more than sufficient to make money trading (even the first article presented enough alpha standalone to make money). </p>
+<p>We combine to form the below curve:</p>
+<p><a href="images/a2a4d0da4ae8.png"><img alt="" src="images/82e9bae68ba4.png" /></a></p>
+<p>Which when we rebalance every 72h we achieve 2.7 Sortino, and 110 bps on dollars traded!</p>
+<p>Much like the prior article this will be fairly short. There is little reason to ramble on when I am merely presenting working alphas to the reader, I will resume more educational material in further articles in this series (research processes, and data pipelines to find said alphas). </p>
+<h3>Alpha 4 - Options 25 Delta Skew</h3>
+<hr />
+<p>We achieve the below performance by taking the skew of the 25 delta options (you can use other deltas, but 25 delta is the strongest and we see the performance slowly improve going from 5-25 delta before peaking at around 25 delta):</p>
+<p><a href="images/1ba80cb4546a.png"><img alt="" src="images/533f5748408e.png" /></a></p>
+<p><a href="images/2c6425b03312.png"><img alt="" src="images/9efa266d8d11.png" /></a></p>
+<p>Similar to our skew alpha from the last article we use the 30d expiry as this performs the best.</p>
+<h3>Alpha 5 - Options GEX</h3>
+<hr />
+<p>Using the standard gamma exposure formula:</p>
+<pre class="codehilite"><code>GEX (per strike) = Option Gamma × Open Interest × Contract Size × Spot Price² × 0.01
+
+Net GEX (market total) = Σ (Call GEX) − Σ (Put GEX) across all strikes &amp; expirations
+</code></pre>
+
+<p>We calculate GEX and find that it has a negative correlation with forward returns, after multiplying with * -1 we get <code>ALPHA_gex_negative</code> :</p>
+<p><a href="images/b6df1b97b5b9.png"><img alt="" src="images/6e6246fb97f3.png" /></a></p>
+<p><a href="images/21d4a4cf9725.png"><img alt="" src="images/c5b0ed7dc100.png" /></a></p>
+<p>The alpha achieves an incredibly high 34.9 bps on dollars traded despite a very aggressive hourly rebalance simulation. This is an incredibly high performance and means that almost all of the Sharpe seen is monetizable (we trade BTC, XRP, SOL and ETH perpetuals which are tight books).</p>
+<h3>Orthogonality</h3>
+<hr />
+<p>We can see in the below scree plot that when we take all of our 5 alphas, we do not explain the variance in a limited set of components and whilst they are not perfectly orthogonal, given that they are all from the same dataset, and we have two versions of skew, this is an incredibly good performance:</p>
+<p><a href="images/c87da2f42be6.png"><img alt="" src="images/e422ab570f9a.png" /></a></p>
+<h3>Combination &amp; Simulation</h3>
+<hr />
+<p>Using an OLS (Ordinary Least Squares) regression to combine our alphas we achieve the below curve:</p>
+<p><a href="images/840ce56b67fd.png"><img alt="" src="images/8fb488c4add7.png" /></a></p>
+<p><a href="images/ef8774daaf6b.png"><img alt="" src="images/39e857b04186.png" /></a></p>
+<p>The bps on dollars traded is not ideal, we could of course exclude the alphas where the bps on dollars traded is too poor or we can choose to rebalance the alpha fairly infrequently instead. A 72h rebalance gives us the below performance:</p>
+<p><a href="images/3b0f560115d3.png"><img alt="" src="images/45f84af68523.png" /></a></p>
+<p><a href="images/ef8ca151cfef.png"><img alt="" src="images/3c50249ab98a.png" /></a></p>
+<p>Our Sortino is almost 2.7, our Sharpe 1.6, and our bps on dollars traded is so high that transaction costs are easy to ignore. This is an example of the kind of strategy you can run on really significantly sized books (liquid names, high bps per dollar traded) </p>
+<p>In the next article, we will go over the research process, data construction, and how to better trade this (72h rebalance is a sub-optimal way to combine alphas). </p>
+<p>18 Likes</p>
+<p><a href="/note/p-194199253/restacks?utm_source=substack&amp;utm_content=facepile-restacks"></a></p>
+</article>
+</body>
+</html>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perpetual Arbitrage 전략 분석 (algos.org #6 + #7)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Perpetual Arbitrage 전략 분석 (algos.org #6 + #7)</h1>
+<blockquote>
+<p>출처: Small Trader Alpha #6 (2024-07-09) + #7 (2024-10-01)<br />
+분석일: 2026-05-20<br />
+대상: Axis/Statra 크로스 익스체인지 아비트라지 팀</p>
+</blockquote>
+<hr />
+<h2>크롤링 상태</h2>
+<table>
+<thead>
+<tr>
+<th>글</th>
+<th>상태</th>
+<th>누락된 섹션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#6 (Perpetual Arbitrage)</td>
+<td><strong>부분 크롤링</strong> (~60%)</td>
+<td>Checking For Opportunities, Taker Backtest, <strong>전체 Part 3 (Advanced Trading)</strong></td>
+</tr>
+<tr>
+<td>#7 (Perpetual Arbitrage Pt. 2)</td>
+<td><strong>거의 미크롤링</strong> (~5%)</td>
+<td>Rust 프로덕션 코드 전체, 고급 기법, Appendix</td>
+</tr>
+</tbody>
+</table>
+<p><strong>#7에서 누락된 핵심 콘텐츠</strong>: Rust perpetual arbitrage scanner 전체 코드, barter-rs 연동, 프로덕션 구현 상세. 원본 URL에서 재크롤링 필요.</p>
+<hr />
+<h2>Part 1: 기본 개념 (#6에서 추출)</h2>
+<h3>1.1 Perpetual Arbitrage 개요</h3>
+<p><strong>핵심</strong>: 동일 자산의 크로스 익스체인지 무기한 선물(perpetual) 간 스프레드 수렴에 베팅하는 <strong>통계적 아비트라지(statistical arbitrage)</strong>. 순수 아비트라지가 아님.</p>
+<ul>
+<li>페어 트레이딩과 유사: 진입 임계값 + 청산 임계값 (보통 평균)</li>
+<li>기계적 힘(mechanical forces)이 자산을 다시 수렴시킴 (순수 통계적 트레이드와 다른 점)</li>
+<li>예시: SOL/USD OKX vs SOL/USDC Binance perp</li>
+</ul>
+<h3>1.2 가격 차이의 3가지 원인</h3>
+<table>
+<thead>
+<tr>
+<th>원인</th>
+<th>설명</th>
+<th>대응</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>스테이블코인 차이</strong></td>
+<td>USDC/USDT/USD 가격 차이</td>
+<td>스테이블코인 가격 추적/정규화</td>
+</tr>
+<tr>
+<td><strong>구조적 차이</strong></td>
+<td>거래소별 고유 플로우, 인덱스 구성 방식</td>
+<td>경험적 분석 필요</td>
+</tr>
+<tr>
+<td><strong>계약 차이</strong></td>
+<td>펀딩 주기, 마진 타입, 결제 방식</td>
+<td>수동 조사 + 정규화</td>
+</tr>
+</tbody>
+</table>
+<h3>1.3 스테이블코인 베이시스 정규화</h3>
+<p><strong>필수 사항:</strong><br />
+- 거래소별 스테이블코인 시장 가격으로 정규화 (글로벌 가격 X, 거래소 로컬 가격 O)<br />
+- 디페깅 시나리오 대비 시스템 off 스위치 필수<br />
+  - USDC 디페깅 사례: Coinbase에서 $0.93까지 하락, 다른 거래소는 몇 센트만 하락<br />
+  - KuCoin도 다른 거래소 대비 큰 폭 디페깅</p>
+<p><strong>주의사항:</strong><br />
+- 일부 거래소는 -USD 표기지만 실제로는 USDC/USDT 결제<br />
+- 같은 거래소에 USDC/USDT/USD perp가 모두 존재할 수 있음<br />
+- USD perp가 coin-margined인 경우 있음 (다른 펀딩 인터벌 가능)<br />
+- 동일 결제/펀딩 사양인 경우에만 교차 비율로 스테이블코인 가격 추정 가능</p>
+<h3>1.4 계약 정규화 (Contract Normalization)</h3>
+<p>Binance perp 가격을 다른 거래소(Bybit, OKX, Hyperliquid 등)로 변환하는 문제.</p>
+<p><strong>단순 접근법의 한계:</strong><br />
+- Binance perp 가격 직접 사용 -&gt; 특히 DEX처럼 짧은 펀딩 주기(시간 단위)에서 부정확<br />
+- perp 가격은 "하향 계단" 패턴으로 스팟에 수렴 -&gt; 펀딩 결제 시 점프<br />
+- 스팟 가격만 사용 -&gt; 불균형 포지션 (언더퍼포밍 코인 롱, 급등 코인 숏)</p>
+<p><strong>최선의 접근법:</strong></p>
+<pre class="codehilite"><code>1. Binance perp 가격 가져오기
+2. 미수 펀딩 결제(accrued but unpaid funding) 차감
+3. 금리 차이(rate differences) 조정
+4. 대상 거래소의 미수 쿠폰(accrued coupon) 차감
+5. 펀딩 결제 재계산
+</code></pre>
+
+<p><strong>정규화의 어려움:</strong><br />
+1. 거래소마다 다른 인덱스 -&gt; 변동성 큰 시장에서 괴리 발생<br />
+2. 펀딩 결제 상한(caps) 거래소마다 다름<br />
+3. 펀딩 레이트 빈번하게 변경 -&gt; 비선형 공식 때문에 변환에 영향<br />
+4. 실무 구현 이슈: 미수 펀딩 결정, 금리 차이 조정</p>
+<p><strong>신뢰도 스코어(Confidence Score) 모델:</strong><br />
+- 두 perp의 유사성이 높으면 -&gt; 신뢰도 높음 -&gt; 다이버전스 시 더 큰 사이징<br />
+- 포함해야 할 컴포넌트: <strong>펀딩 인터벌, 인덱스 가격 공식, 펀딩 상한, 발생 공식(accrual formula)</strong></p>
+<p><strong>베이시스 변동성(Basis Volatility):</strong><br />
+- 인덱스가 전체 시장 볼륨의 큰 비중을 커버할수록 안정적<br />
+- 예: Bybit+OKX+Binance 인덱스 -&gt; 매우 안정 / 자체 스팟 마켓만 사용하는 소형 거래소 -&gt; 불안정</p>
+<h3>1.5 진입/청산 타이밍</h3>
+<p><strong>기본 파라미터:</strong></p>
+<table>
+<thead>
+<tr>
+<th>파라미터</th>
+<th>값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이동평균</td>
+<td>SMA 또는 EMA</td>
+<td>lookback period 설정</td>
+</tr>
+<tr>
+<td>진입 임계값</td>
+<td>2 std dev</td>
+<td>스프레드의 z-score 기준</td>
+</tr>
+<tr>
+<td>청산 임계값</td>
+<td>평균 (z=0) 또는 그 이전</td>
+<td>3번째 파라미터로 exit z-score 설정 가능</td>
+</tr>
+</tbody>
+</table>
+<p><strong>SMA &lt;-&gt; EMA 변환:</strong><br />
+- EMA의 반감기(half-life)와 SMA의 lookback period를 동등하게 환산 가능</p>
+<p><strong>Mean Reversion 동학:</strong><br />
+- 기대 평균 회귀 E[MR(t1, t2)]는 절대 z-score에 비례 (대략 선형, 실제로는 지수적 또는 플래토 가능)<br />
+- 스프레드 변동성은 대략 상수로 가정 가능<br />
+- <strong>핵심 인사이트</strong>: 스프레드가 회귀할수록 엣지 감소, 변동성은 동일 -&gt; 리스크-리워드 악화<br />
+- 평균 추정 오류(mean estimation error) 위험까지 고려하면 -&gt; <strong>평균까지 완전히 보유하는 것보다 약간 이전에 청산이 합리적</strong></p>
+<p><strong>비용 민감도:</strong><br />
+- 이 전략은 수수료/거래비용 대비 경쟁이 매우 치열<br />
+- "몇 bps가 세상을 좌우" -&gt; 거래비용 후 수익이 몇 bps 수준</p>
+<hr />
+<h2>Part 2: 구현 (#6에서 추출)</h2>
+<h3>2.1 파이프라인</h3>
+<pre class="codehilite"><code>1. Data Scraping       (.ipynb)
+2. Data Pre-Processing (.ipynb)
+3. Analysis            (.ipynb) -&gt; 기본 기회 탐색
+4. Analysis Cont.      (.ipynb) -&gt; 백테스트
+5. Expanded Analysis   (.ipynb) -&gt; 레이턴시/거래비용 변동 분석
+</code></pre>
+
+<p>각 단계를 별도 .ipynb로 분리. 여러 연구자가 검증해야 하는 전략이면 .py 파일로 툴링 빌드.</p>
+<h3>2.2 데이터 소싱</h3>
+<p><strong>Tardis.dev</strong> 사용 (히스토리컬 데이터).</p>
+<p><strong>거래소 목록 및 티커 포맷:</strong></p>
+<table>
+<thead>
+<tr>
+<th>거래소</th>
+<th>Tardis 이름</th>
+<th>티커 접미사</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OKX</td>
+<td><code>okex-swap</code></td>
+<td><code>-USDT-SWAP</code></td>
+</tr>
+<tr>
+<td>Bybit</td>
+<td><code>bybit</code></td>
+<td><code>USDT</code></td>
+</tr>
+<tr>
+<td>dYdX</td>
+<td><code>dydx</code></td>
+<td><code>-USD</code></td>
+</tr>
+<tr>
+<td>Gate.io</td>
+<td><code>gate-io-futures</code></td>
+<td><code>_USDT</code></td>
+</tr>
+<tr>
+<td>Binance</td>
+<td><code>binance-futures</code></td>
+<td><code>USDT</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>데이터 타입:</strong> <code>quotes</code>, <code>trades</code>, <code>book_snapshot_25</code></p>
+<p><strong>실시간 대안:</strong> Rust로 WebSocket 피드 구독 -&gt; 기회 스캔 -&gt; 데이터셋 로깅</p>
+<h3>2.3 데이터 전처리</h3>
+<p><strong>TAQ (Trades &amp; Quotes) 병합:</strong><br />
+- 거래소별 TAQ 병합 (limit order 최적화 분석용)<br />
+- 크로스 익스체인지 quotes 병합 (기회 탐색 + 백테스트용)<br />
+- <code>pd.merge_asof</code>로 타임스탬프 기준 nearest merge<br />
+- 출력: Parquet 포맷</p>
+<p><strong>Quote 데이터 처리 규칙:</strong><br />
+- Quote 값은 fill-forward 가능 (다음 quote까지 유효)<br />
+- Trade 값은 fill-forward 불가<br />
+- NaN 체크: trade 컬럼이 NaN이면 quote 업데이트, 아니면 trade 업데이트<br />
+- Binance 실시간 업데이트 ~30ms 간격 -&gt; sub-100ms/sub-30ms 주기에서 주의</p>
+<p><strong>심볼 필터링:</strong><br />
+- 최소 2개 이상의 거래소에 동시 상장된 심볼만 유효<br />
+- 시가총액 기준 필터링 가능</p>
+<h3>2.4 [누락] Checking For Opportunities</h3>
+<p>크롤링 잘림. 단일 자산(LINK) 2개 거래소 간 아비트라지 스캔이 시작되는 시점에서 절단.</p>
+<h3>2.5 [누락] Taker Backtest</h3>
+<p>크롤링 잘림. 기본 taker 버전 백테스트 코드 전체 누락.</p>
+<hr />
+<h2>Part 3: Advanced Trading (#6에서 목차만 존재, 본문 누락)</h2>
+<p><strong>#6 목차에 나열된 고급 주제들 (본문 미크롤링):</strong></p>
+<table>
+<thead>
+<tr>
+<th>섹션</th>
+<th>설명 (목차 기반 추정)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Maker/Taker Execution</td>
+<td>메이커 주문으로 비용 절감 전략</td>
+</tr>
+<tr>
+<td>Volume &amp; Lead-Lag</td>
+<td>거래량 기반 리드-래그 분석</td>
+</tr>
+<tr>
+<td>Latency &amp; Message Ordering</td>
+<td>레이턴시 최적화, 메시지 순서 처리</td>
+</tr>
+<tr>
+<td>Mean Estimate Free Reversion</td>
+<td>평균 추정 없는 평균 회귀 기법</td>
+</tr>
+<tr>
+<td>Global Lead Lag</td>
+<td>글로벌 리드-래그 관계</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Part 4: Rust 프로덕션 코드 (#7 - 거의 전체 누락)</h2>
+<p><strong>#7에서 확인된 정보:</strong><br />
+- Rust로 perpetual arbitrage scanner <strong>전체 코드</strong> 제공 (Appendix에 copy-paste 가능한 형태)<br />
+- <strong>barter-rs</strong> 오픈소스 프로젝트 활용 (Rust용 CCXT 유사 라이브러리)<br />
+- 셀프 도큐멘팅 코드 (주석 + 네이밍으로 설명)<br />
+- 프로덕션 배포 가능 수준</p>
+<p><strong>재크롤링 필요</strong>: https://www.algos.org/p/small-trader-alpha-7-perpetual-arbitrage</p>
+<hr />
+<h2>PNL 차트 분석</h2>
+<p>첨부된 PNL 이미지 (1코인, 2거래소, top-of-book 기준):</p>
+<ul>
+<li><strong>Absolute PnL</strong>: 계단식 상승, 일관된 양의 수익 (~0.20 달러 규모, 기간 내)</li>
+<li><strong>Mid-price Spread</strong>: 1.0 중심으로 oscillation, 가끔 1.01까지 스파이크</li>
+<li>스프레드 비율이 1.0 = 두 perp 가격 동일, 1.0 초과 = 첫 번째 거래소가 더 비쌈</li>
+<li>"shape에 집중, 스케일링은 trivial" -&gt; 코인 수/거래소 수 확장으로 선형 스케일링</li>
+</ul>
+<hr />
+<h2>Axis/Statra 적용 시 고려사항</h2>
+<h3>직접 관련 영역</h3>
+<table>
+<thead>
+<tr>
+<th>Axis 현재 전략</th>
+<th>이 글과의 연관성</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Basis trading</td>
+<td>Perp arb의 특수 케이스. 동일 개념, 다른 쌍</td>
+</tr>
+<tr>
+<td>Funding rate capture</td>
+<td>계약 정규화 시 펀딩 레이트가 핵심 요소</td>
+</tr>
+<tr>
+<td>Calendar spreads</td>
+<td>만기 기반 vs 무기한 - 유사한 mean reversion 동학</td>
+</tr>
+<tr>
+<td>Cash-and-carry</td>
+<td>Spot-perp 버전과 perp-perp 버전의 차이 이해 필요</td>
+</tr>
+</tbody>
+</table>
+<h3>멀티 익스체인지 구현 체크리스트</h3>
+<pre class="codehilite"><code>1. 스테이블코인 베이시스 정규화
+   - [ ] 거래소별 USDT/USDC/USD 가격 실시간 추적
+   - [ ] 디페깅 감지 및 자동 시스템 정지 로직
+   - [ ] Binance, OKX, Bybit, Coinone, Bitget, Kraken, Gate.io 각각 매핑
+
+2. 계약 정규화
+   - [ ] 거래소별 펀딩 인터벌 매핑 (8h vs 4h vs 1h)
+   - [ ] 펀딩 레이트 상한(cap) 매핑
+   - [ ] 인덱스 가격 공식 분석
+   - [ ] 미수 펀딩 계산 로직
+   - [ ] 신뢰도 스코어 모델 구축
+
+3. 스프레드 타이밍
+   - [ ] EMA/SMA lookback 최적화
+   - [ ] 진입 z-score (기본 2.0) 튜닝
+   - [ ] 청산 z-score (평균 이전) 튜닝
+   - [ ] 거래비용 차감 후 순수익 시뮬레이션
+
+4. 인프라
+   - [ ] Rust WebSocket 피드 (barter-rs 검토)
+   - [ ] 크로스 익스체인지 레이턴시 최적화
+   - [ ] 메시지 순서 처리
+   - [ ] 리드-래그 분석 파이프라인
+</code></pre>
+
+<h3>수익 기대치</h3>
+<ul>
+<li>단일 코인/2거래소/top-of-book: PnL 차트 기준 소폭이지만 일관된 수익</li>
+<li>거래비용 후 "몇 bps" 수준 -&gt; <strong>수수료 최적화가 생존 조건</strong></li>
+<li>메이커 실행으로 비용 절감 필수</li>
+<li>스케일링: 코인 수 x 거래소 쌍 수로 선형 확장 가능</li>
+</ul>
+<hr />
+<h2>핵심 수식/파라미터 요약</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값/공식</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>스프레드 비율</td>
+<td><code>price_A / price_B</code></td>
+</tr>
+<tr>
+<td>스프레드 차이</td>
+<td><code>price_A - price_B</code> (실제 트레이딩 가능)</td>
+</tr>
+<tr>
+<td>진입 조건</td>
+<td><code>abs(z_score) &gt;= 2.0 * std_dev</code></td>
+</tr>
+<tr>
+<td>청산 조건</td>
+<td><code>z_score -&gt; 0</code> (또는 exit_z_score 파라미터)</td>
+</tr>
+<tr>
+<td>Mid price</td>
+<td><code>(ask_price + bid_price) / 2.0</code></td>
+</tr>
+<tr>
+<td>Mean reversion edge</td>
+<td><code>E[MR(t1,t2)] ~ proportional to abs(z_score)</code></td>
+</tr>
+<tr>
+<td>Edge/Vol ratio</td>
+<td>회귀 진행 시 악화 -&gt; 조기 청산 근거</td>
+</tr>
+<tr>
+<td>데이터 업데이트 간격</td>
+<td>Binance ~30ms</td>
+</tr>
+<tr>
+<td>최소 거래소 수</td>
+<td>자산당 &gt;= 2개</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>추가 읽기 권장 (같은 시리즈)</h2>
+<table>
+<thead>
+<tr>
+<th>글</th>
+<th>파일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small Trader Alpha #4: Funding Arbitrage</td>
+<td><code>2024-01-30-small-trader-alpha-4-funding-arbitrage.md</code></td>
+</tr>
+<tr>
+<td>How to Level Up Your Arb Game</td>
+<td><code>2024-04-07-how-to-level-up-your-arb-game.md</code></td>
+</tr>
+<tr>
+<td>Ultimate Crypto Arbitrage Guide</td>
+<td><code>2025-06-20-ultimate-crypto-arbitrage-guide.md</code></td>
+</tr>
+<tr>
+<td>Finding Arbitrage Opportunities</td>
+<td><code>2025-09-22-finding-arbitrage-opportunities.md</code></td>
+</tr>
+<tr>
+<td>Ultimate Crypto Latency Guide</td>
+<td><code>2026-02-08-ultimate-crypto-latency-guide.md</code></td>
+</tr>
+</tbody>
+</table>
+</article>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ranked L/S - Turning a formula into a strategy</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>Ranked L/S - Turning a formula into a strategy</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2023-02-07</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>무료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/ranked-ls-turning-a-formula-into</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>A very dirty way to translate an alpha (formula) into a strategy without the need for complex machine learning or portfolio optimization.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>The standard process I think of for creating alpha-based strategies goes as such:</p>
+<p>Data → Formula → Prediction → Portfolio Optimization → Execution</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+<p>Ranked Long / Short (RLS) is a way we can simplify the two parts of this which normally require a pretty significant amount of head-scratching to build into your research platform. This is prediction and portfolio optimization. </p>
+<p>Normally, you take your formula and feed it into an ML model to spit out a prediction of the expected return for different assets. You may also want to predict volatility, but most people will just use historical values. Either way, you need EV and volatility.</p>
+<p>Linear regression is entirely fine for the ML component, maybe a non-parametric regression if there is some fundamental reason you need non-linearity. The formula / rule is called the alpha for a reason, it is 95%+ of where your alpha, edge, cash money PNL, or whatever you call it, comes from (people often get confused by the fact that people will use the word alpha to mean the formula / rule, whilst also using the same word to mean having returns in excess of the market on a risk-adjusted basis).</p>
+<p>Once you have your expected value + volatility, you feed this into your portfolio optimization model. There are many libraries in both R and Python for this, although the best solution will be from banging your head against a convex optimization textbook, grinding through the literature, and creating a custom optimizer. </p>
+<p>This is in many ways why your research platform can make or break your performance as a quant team. If you handle data and automate deployment / execution, then all you need to do is create a formula / rule. You wouldn’t even need to write code, you could just have it parse the formula you type into a dashboard and generate the feature. These types of systems take years to build and are often highly custom. </p>
+<p>Every night, I dream of having an incredibly comprehensive system like this. Alas, most people capable of building such things prefer to spend their time creating alpha so end up with far dirtier systems. Lucky for me, my current work doesn’t so much need a system like that as it is more about capturing nuance effectively.</p>
+<p>This is where we present one of the best tools for doing things “eh good enough” - the RLS method. Ranked Long / Short (RLS) involves taking assets, ranking them on the alpha, then longing the top xx %, and shorting the bottom xx %. </p>
+<p>For example:</p>
+<p>Our alpha might be some metric, we calculate this metric for each asset, then we rank all assets on the metric. Our metric is mean 0, with a standard deviation of 1 since we z-score it. We calculate the 0.9 and the 0.1 quantiles. Then we use these quantiles as cutoffs to select our top and bottom 10%. Finally, we long all the assets in the top 10%, and short all the assets in the bottom 10%. We get the below result using an assumption of top-taker fees, and a roughly accurate value for spreads (we only use top 10-20 liquid assets otherwise our spread assumptions are either way too conservative or too liberal depending on which assets are in the portfolio at that time). We also volatility adjust in both the upper and lower deciles. We could use the top/bottom 20%, 5%, etc but 10% works fine here. I’m not revealing the metric, but keep experimenting and you may find it :)</p>
+<p><a href="images/eedc73a0c2fc.png"><img alt="" src="images/0426b7c20f37.png" /></a></p>
+<p>What about prediction? Well, the graph shown below is effectively what we assume when we use the RLS method. We draw a cutoff at xx % since our EV must beat fees plus some risk premium for us to do well. Linear is true in most cases, but if it isn’t linear then we can also fix that easily.</p>
+<p><a href="images/37d3772eeae0.png"><img alt="" src="images/17318ea2b2f4.png" /></a></p>
+<p>What if the relationship between the value of my alpha and the expected value (EV) of the asset in the future looks more like this (not so linear):</p>
+<p><a href="images/c2d4087ce54d.png"><img alt="" src="images/057347495f73.png" /></a></p>
+<p>In this case, we can just take the absolute value of our feature, and we get back to the original straight line. You may wonder “what if the low value is 5, and the high value is 50? Doesn’t that give me the same result?” (5 and 50 are arbitrary what matters is that both are positive). </p>
+<p>The reason taking the absolute value works is that you can always z-score your features. If you do this, your low is negative and your high is positive, both to equal degrees. Taking the absolute value puts your low at 0, and high at some positive number (you could z-score it again, but there isn’t a real reason in my view), either way, you get back to the original image once again.</p>
+<p>The arguments against RLS are not from its inability to adapt to non-linearity, you can usually embed that in your feature by changing the formula. The main drawback is actually the excessive turnover the model creates. </p>
+<p>Let’s look at an example:</p>
+<p>Say I have a long / short portfolio that currently is expected to deliver 14 basis points over the next hour. My cost to transact is ~3.5 bps for futures if I have top taker fees (1.53 * 2 for fees + round it off to 3.5 to account for spread). If getting the new best portfolio requires me to turnover my portfolio on both legs, then I see an increase in costs of 7 bps relative to my current portfolio. I pay 3.5 bps to get flat on both my long and short side, then another 3.5 to get long and short on the new portfolio. Pricey.</p>
+<p>We assume that there are 16 basis points of edge in the new portfolio. Standard RLS would say switch. This is because it has no concept of transaction costs. If it did consider transaction costs then it would not switch since we go from 14 bps to 9 bps (16 - 7) which is -EV relative to our current position. </p>
+<p>We can of course improve this by using a method I call Optimized RLS (ORLS) this is a trick I came up with that I decided to name all of a sudden. It is a bit more complicated and requires you to pull out a bit of ML, but if you are just using linear regressions (my recommendation) it won’t be much harder. We use our regression to get a quick forecast, finding the relationship between the metric and the EV. </p>
+<p>Then we can say that 7 bps of EV is equal to a metric that is 0.24 or -0.32. (Often the buy/sell sides of the trade have different amounts of edge). If the amount of EV we use is equal to our fees (hence why I used 7 bps above), then we can adjust the metric of every asset other than our current holdings by that amount (if we have -0.1 for an asset we would subtract the negative number, -0.32, but since we don’t want to make it positive so we just set it to 0. If it was 0.1 we would subtract 0.24 which makes it negative, so we just set it to 0). For a score like 0.5, we would subtract 0.24 and get 0.26. Then we rank all the assets again after adjusting them to get our new rankings. Note that we do not adjust any of the assets we already are holding since there is no cost to have them in our new portfolio, we already own them!</p>
+<p>This is also helpful since we could say our cutoff is x times the cost of trading and we only trade if both the buy / sell side are above their respective cutoffs to ensure we are always delta neutral. The next step beyond that would be to do actual portfolio optimization and ML, but this is about as far as we can go whilst still claiming a “quick and dirty solution”. </p>
+<p>In most cases, we do not even use ORLS because RLS works fine. We also may be using RLS to briefly check if an alpha is worth exploring, so we simulate RLS without fees, or with very low fees. This is because it is just a dirty test. We want to see if the idea is correct or not. If the returns are good without fees, and of course, this requires some experience/judgment, but if they look good enough that you could guess it will also be decent after fees (this is where the judgment comes in) then you would spend time properly testing it with machine learning + portfolio optimization. </p>
+<p>Some people will use RLS as their final solution anyways, and for many applications it is fine, but please remember that it is also probably not the best way to do it.</p>
+<p>For context, we can look at the performance of the previous alpha when we apply a proprietary portfolio optimization / machine learning system I developed. The majority of the improvement comes from it accurately accounting for costs when making its decisions. The difference between a linear regression, decision tree, or non-parametric regression is almost insignificant (important to note so I don’t have people coding up neural nets thinking it will massively improve performance).</p>
+<p><a href="images/49ccf725165d.png"><img alt="" src="images/d7e2eca06490.png" /></a></p>
+<h4>Bonus Trick:</h4>
+<p>One fun bonus tip / trick that I thought I would share is that you can use RLS as a way to discover if your alpha is robust to overfitting or not. Most people will take the top 10%, and of course, the threshold somewhat depends on your transaction costs, but a good way to tell if an alpha is robust is to test it out at different thresholds. If it works at 20%, 10%, and 5% you can be very confident that it is genuine. If it looks wildly different when you change the quantiles a bit then your alpha is not robust and there is a good chance it was overfit. This is a really great tool I use often.</p>
+<p>This was a trick I learned from other quants, but I don’t see it talked about much. Perhaps one day we will see an RLS quantile plot being a common quant tool (a plot of the Sharpe ratio across a range of quantiles, perhaps 5% increments from 30% to 5%). </p>
+<h4>Conclusion</h4>
+<p>Hopefully, you’ve found a really easy way to deploy your ideas without the need to spend ages experimenting with machine learning and portfolio optimization. This is a great tool I use regularly, as well as many quants. The overfitting detection technique is also super cool and helpful so worth giving it a go when in doubt.</p>
+<p>Quant’s Substack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.</p>
+</article>
+</body>
+</html>

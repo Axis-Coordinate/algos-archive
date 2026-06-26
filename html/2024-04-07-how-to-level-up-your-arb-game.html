@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to level up your arb game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fafafa;
+    padding: 2rem;
+  }
+  article {
+    max-width: 760px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 2rem; margin-bottom: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+  h3 { font-size: 1.2rem; margin: 1.5rem 0 0.8rem; }
+  p { margin-bottom: 1rem; }
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1rem 0;
+    display: block;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  th { background: #f5f5f5; font-weight: 600; }
+  code {
+    background: #f4f4f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1.2rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  blockquote {
+    border-left: 3px solid #3b82f6;
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    color: #555;
+    background: #f8fafc;
+    border-radius: 0 4px 4px 0;
+  }
+  a { color: #3b82f6; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+  hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+  .meta { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+  nav {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    font-size: 0.9rem;
+  }
+  nav a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">← 목록으로</a></nav>
+<article>
+<h1>How to level up your arb game</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>날짜</td>
+<td>2024-04-07</td>
+</tr>
+<tr>
+<td>접근</td>
+<td>유료</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://www.algos.org/p/how-to-level-up-your-arb-game</td>
+</tr>
+<tr>
+<td>부제</td>
+<td>The paths to improving an existing arbitrage trade</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a href="images/9cc31af2ca2c.webp"><img alt="Visualize a trading algorithm represented as a futuristic robot, surrounded by dynamic digital effects and icons symbolizing stock market elements like graphs and currencies. The scene is set in a virtual space, resembling a video game, where the robot stands on a podium that glows with neon lights. Above the robot, a large, glowing 'Level Up!' sign hovers, emphasizing the video game-like progression. The background is filled with abstract digital patterns and binary code streams, highlighting the high-tech environment. This image captures the moment of the algorithm advancing to a new level of capability and performance." src="images/5637a4d4c433.webp" /></a></p>
+<h4>Introduction</h4>
+<hr />
+<p>Especially when it comes to the high-frequency world, trades quickly become crowded and die out. I’ll list out some arbitrages that used to work in their basic form and then died off:</p>
+<ol>
+<li>
+<p>Triangular arbitrage</p>
+</li>
+<li>
+<p>Perpetual basis arbitrage </p>
+</li>
+<li>
+<p>BTC lead-lag</p>
+</li>
+<li>
+<p>Spot / spot arbitrage</p>
+</li>
+</ol>
+<p>This extends past pure arbitrages to more statistical trades or event-driven ones. </p>
+<p>Of course, how you optimize a trade varies based on its attributes. A longer-lasting statistical alpha gives more room for execution enhancements than an event-driven alpha like Elon tweeting about DOGE, where the alpha realizes over a very discrete interval.</p>
+<p>In this article, we dive deep into how to level up your alphas at very broad level. For specific examples where I’ve walked through this for individual trades, my small trader alpha series gives clear examples of many of these trades (Funding arbitrage, Spot/Spot, Triangular) which with the exception of funding arbitrage is dead in the traditional form, but as we show is still very profitable in modern day by levelling up the trade. </p>
+<h4>Index</h4>
+<hr />
+<ol>
+<li>
+<p>Introduction </p>
+</li>
+<li>
+<p>Index</p>
+</li>
+<li>
+<p>Execution </p>
+</li>
+<li>
+<p>Statistical</p>
+</li>
+<li>
+<p>Exposures</p>
+</li>
+<li>
+<p>Universe Expansion</p>
+</li>
+<li>
+<p>Scope Expansion</p>
+</li>
+<li>
+<p>Latency</p>
+</li>
+<li>
+<p>Trading Costs</p>
+</li>
+<li>
+<p>Leverage </p>
+</li>
+<li>
+<p>Walkthroughs</p>
+<ol>
+<li>
+<p>Funding </p>
+</li>
+<li>
+<p>Triangular </p>
+</li>
+<li>
+<p>Spot</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Final Comments</p>
+</li>
+</ol>
+<h4>Execution</h4>
+<hr />
+<p>It’s often the case that we see teams evolve their HFT strategies over a common path, in these stages:</p>
+<ol>
+<li>
+<p>Taker / Taker </p>
+</li>
+<li>
+<p>Maker / Taker</p>
+</li>
+<li>
+<p>Maker / Maker</p>
+</li>
+</ol>
+<p>This is how arbitrageurs become market makers so frequently because they start off with a great trade that works fine. Then, as they expand it, there begins a transition to more making in the execution, until eventually the alpha dies and they are left with a full maker system that can no longer be called an arbitrage strategy and is now a full-fledged market-making strategy. </p>
+<p>If you have an arbitrage that involves taking, you’ll start by making the first trade using a limit order and entering the maker/taker world. This is easier than all maker because you still ensure the trade remains fully hedged throughout.</p>
+<p>With taker/taker, you control both legs, so you can ensure that you hedge after the first leg completes, and with maker/taker, whilst you don’t control the first leg, you can still make sure that the remaining legs will complete.</p>
+<p>Maker/maker becomes a little bit more complicated, but by the time you transition to it, the general concept should be quite easy because, hopefully, you’ve solved the core optimization problems related to maker/taker already.</p>
+<p>The main thing to consider is the signal decay. If your signal lasts a very long time, then you can afford to make into it. These are arbitrages that are uncompetitive since the exit liquidity on the exit legs will not be taken rapidly. </p>
+<p>There is then also the question of what causes the discrepancy. If you get filled on a limit order that is 5% wide and then cross-exchange exit that trade, then it was probably the insanely wide limit order that created the profitability. </p>
+<p>However, if you earn 10 bps on an arbitrage where the difference in midprices cross-exchange is 5%, then you’re still earning all the profits from the difference in midprices. </p>
+<p>Thus, it’s important to establish how much of the actual edge you are gaining from this maker model. This isn’t just about the decision of how valuable making is, but more about alpha decay. Discrepancies in price tend to resolve a lot faster, but of course, if you are getting filled to make the edge, then it’s simply an analysis of your fill times.</p>
+<p>Here’s what you’ll need to solve:</p>
+<ol>
+<li>
+<p>Optimal level of spread (trading off how much you get filled vs.. spread earnt)</p>
+</li>
+<li>
+<p>How aggressive should I be based on signal decay (the balance between the signal going away over time and you getting better fills if you wait longer / wider)</p>
+</li>
+<li>
+<p>Quoting constraints (spot requires inventory to quote, and margin considerations will all play a role)</p>
+</li>
+</ol>
+<h4>Statistical</h4>
+<hr />
+<p>There are many ways to improve a trade on the statistical side. Here are some examples of how we could do this:</p>
+<ol>
+<li>
+<p>Persistence modelling (how long will this funding arb exist or how long will this triangular arbitrage exist - this will play into execution as well and how you set your limit orders)</p>
+</li>
+<li>
+<p>Removing unnecessary legs (Can we only take one side of this triangular arbitrage or cross-exchange trade and make it a lead-lag trade)</p>
+</li>
+<li>
+<p>Pairs trading the spread (Instead of cross-exchange settling, we can just pairs trade the spread and exit on both exchanges)</p>
+</li>
+<li>
+<p>Analysis of opportunities (Do we get picked off more on large caps than small caps? Can we analyze our trades so far and find common themes between the most profitable ones. Not all arbs are risk free, your orders can be picked off or you can be too slow, or it can take ages to converge, what predicts all of this?)</p>
+</li>
+</ol>
+<p>This is a non-exhaustive list but it provides a start on how we can improve trades. All 4 of these points apply to almost every trade I’ve explored. Post-trade analysis is key and you’ll often find that certain assets or exchanges for some reason have no competition and you have great persistence etc. </p>
+<h4>Exposures</h4>
+<hr />
+<p>People often try to be delta-neutral when they make arbitrage trades, but holding inventory and running deltas is a great way to improve.</p>
+<p>For triangular arbitrage, if I want to quote limit orders on the sell-side of a spot asset, I need to hold inventory of it first.</p>
+<p>If I am doing spot arbitrages between exchanges, it may make sense to hold more spot inventory before transferring, as transferring has a fixed cost.</p>
+<p>Funding arbitrage sometimes makes sense to hedge in a correlated asset when it’s too expensive to get the actual underlying.</p>
+<p>All of these come with risks that can go massively against you so it’s important to understand the risks and whether they come with a premium - some don’t. </p>
+<p>The cases where there is no premium on the risk, you may want to find alternative ways to take off risk. Do you find that an arbitrage flips both ways? Perhaps hedge in the future because it is cheaper and eventually this should all balance out. Hedging in futures for spot cross-exchange arbitrages can be a great way to protect yourself against scenarios like LUNA, where the arbitrage exists because no one wants to hold it due to it crashing. Identifying scenarios like this again comes back to the statistical side of things.</p>
+<h4>Universe Expansion</h4>
+<hr />
+<p>Expanding the universe of the trade is an easy way to make more money. You should make sure to trade every asset on the exchange.</p>
+<p>This sounds quite trivial, but often people only manually select assets to trade, and do not have the automation necessary to truly trade everything.</p>
+<p>Oftentimes, the systems cannot handle the data input required to trade large universes as well, but all of this should be planned ahead.</p>
+<p>Build a quick demo to test the arbitrage ASAP (MVP), and then from there, think about scale.</p>
+<h4>Scope Expansion</h4>
+<hr />
+<p>Scope expansion really just means adding new assets to the universe of what we are trading that change the scope of the arbitrage. This is because the assets are not the same as the existing assets in how they are dealt with practically.</p>
+<p>Here are some examples:</p>
+<ol>
+<li>
+<p>Adding coin-margined futures to a perpetual basis trade against USDT-margined futures.</p>
+</li>
+<li>
+<p>Adding assets from another exchange</p>
+</li>
+<li>
+<p>Adding dated futures with an expiry to the basis trade with a model for normalizing them with confidence included</p>
+</li>
+<li>
+<p>Adding spot assets to a futures-futures funding trade to do both spot vs. futures and futures vs. futures in one place.</p>
+</li>
+</ol>
+<p>I want to highlight #3 as an example of a situation where statistical intervention is actually required. In fact, they are so different that our normalization process becomes guesswork. </p>
+<p>Scope expansion almost always will involve some statistical elements because of this. It is rare to get a direct translation between assets with no caveats. Even for spot vs. spot cross-exchange, we should think about the probability that holding inventory is a premium simply because the asset is plummeting.</p>
+<h4>Latency</h4>
+<hr />
+<p>We can always look at improving our latency as a way to stay competitive as well.</p>
+<p><a href="https://www.algos.org/p/low-latency-dup-data-aggregation"><img alt="Low Latency Dup. Data Aggregation" src="images/5d7908bb5349.png" />Low Latency Dup. Data Aggregation[Quant Arb](<a href="https://substack.com/profile/101799233-quant-arb">https://substack.com/profile/101799233-quant-arb</a>)·October 8, 2023[Read full story](<a href="https://www.algos.org/p/low-latency-dup-data-aggregation">https://www.algos.org/p/low-latency-dup-data-aggregation</a>)</a></p>
+<p>In the above article, we give a comprehensive guide to latency reduction, but latency goes beyond the actual system latency and into identifying when latency will spike.</p>
+<p>This is on the statistical side again, but we can often find proxies for things like:</p>
+<p>“if the deviation is smaller than X, we are unlikely to be fast enough, but if it’s larger than X, then we will be fast enough”</p>
+<p>This could also be volume-based. These are real ways that I have improved trades in the past.</p>
+<h4>Trading Costs</h4>
+<hr />
+<p>This can be done in 4 ways:</p>
+<ul>
+<li>
+<p>Prime Brokers</p>
+</li>
+<li>
+<p>Negotiation</p>
+</li>
+<li>
+<p>Churning</p>
+</li>
+<li>
+<p>Crossing</p>
+</li>
+</ul>
+<p>The first, second, and third way to reduce trading costs come from improving your fees on exchange. </p>
+<p>The last is by crossing your flow against other flows. </p>
+<p>To start, you can talk to a prime broker who will give you a subaccount to trade out of and offer you much better fees. You won’t have the best fees possible since they’ll take a little for themselves, but they always offer to improve your fees unless you have the best or near the best already. They can also be negotiated with. The thread I wrote below is a bit old, but worth looking at if you want to understand the space:</p>
+<p><a href="https://x.com/quant_arb/status/1612265350506086400">Prime Brokers Thread</a></p>
+<p>To give an updated recommendation, I would say LTP is probably the best to go with currently, although with the recent regulatory issues it very much depends on your situation. They won’t touch anything US related, but here are your options generally:</p>
+<ol>
+<li>
+<p>LTP (Liquidity Tech)</p>
+</li>
+<li>
+<p>FalconX</p>
+</li>
+<li>
+<p>Matrixport</p>
+</li>
+<li>
+<p>HRP (Hidden Road Partners)</p>
+</li>
+<li>
+<p>Copper</p>
+</li>
+</ol>
+<p>For the negotiation front, this comes down to how well you can convince an exchange you are a major player in the space and worth cutting a deal with OR how much you can trade on something they want to grow. Often, they’ll have products like combo books that they’ll give you special incentives to trade on, and you can work those into better fees.</p>
+<p>Churning volume intentionally to grind fee tiers is another common way to go about it, and you can include the value of volume itself in your trade logic to get there.</p>
+<p>Finally, if we have multiple other strategies in operation, and they decide to trade at the same time, we can match their orders internally before sending them out. This reduces our trading significantly, and is a technique I’ve talked about extensively in previous articles.</p>
+<h4>Leverage</h4>
+<hr />
+<p>There are 4 main ways to acquire leverage:</p>
+<ol>
+<li>
+<p>Built-in exchange leverage</p>
+</li>
+<li>
+<p>Custom exchange leverage</p>
+</li>
+<li>
+<p>Prime broker leverage</p>
+</li>
+<li>
+<p>External leverage providers</p>
+</li>
+</ol>
+<p>For most exchanges, you can borrow spot or for the perpetuals you can get incredibly levered. This is enough for most people and represents the most basic form of leverage that everyone has access to. You will also get better spot borrow rates based on fee tiers for many exchanges.</p>
+<p>Many exchanges will also offer zero-interest loans (which do need to be collateralized and come with LTV requirements) if you generate over a certain volume. These can again be negotiated once you start moving size.</p>
+<p>Prime brokers will offer leverage as one of their services, and you can discuss with them how this can be organized. With all the regulatory scrutiny nowadays, it tends to be a bit more case-specific.</p>
+<p>Finally, firms like Tesseract or Cicada can take a look at a trading firm’s balance sheet and write loans based on this and the perceived risk they gather from that balance sheet, which is much more flexible in terms of how they can be deployed. These firms are usually able to move quite fast, but they still have a fair bit of operational work in terms of contracts and agreements.</p>
+<h4>Walkthroughs</h4>
+<hr />
+<p>In this section, we will walk through each of the sections we defined for different trades (funding, triangular, spot-spot), and outline the specifics of how it applies.</p>
+<p>You can also check out previous articles in the small trader alpha series (with more to come in the near future) for a much more in-depth dive, with relevant statistics, charts, and analyses included.</p>
+<p><strong>Funding Arbitrage:</strong></p>
+<ul>
+<li>
+<p><strong>Execution</strong> : For execution, we have 2 legs and thus can start with making into the first leg, and making out when we decide to exit. This is very standard other than the fact that whether to enter / exit is often swayed heavily by cost (i.e., break-even time for collecting funding is 14.5 hours so we can’t turnover too much, but if we quote super wide and get a great fill then maybe that drops and we’re willing to exit now because the spread has converged a bit and better opportunities exist)</p>
+</li>
+<li>
+<p><strong>Statistical</strong> : Persistence prediction is a core part of this, as is modeling risks around the spread blowing up cross-exchange or even statistical alphas related to what happens when we hit funding rate caps, etc., and whether this can become a trade.</p>
+</li>
+<li>
+<p><strong>Exposures</strong> : Holding basis risk, holding the risk of margin calls cross-exchange, especially if we start mixing spot vs. futures on risky shit, hedging in correlated assets, hedging overall margin betas cross-exchange (i.e. if I am long 10 ETH betas (betas as in worth of ETH exposure, this could be WIF etc) on Binance and short 10 ETH betas on Okx, I put on a 10x10 ETH spread since if ETH moves a shit ton I don’t want to get margin called from everything lead-lagging and ETH is cheap to trade compared to shitcoins).</p>
+</li>
+<li>
+<p><strong>Universe Expansion:</strong> Trade all tickers </p>
+</li>
+<li>
+<p><strong>Scope Expansion:</strong> Trade coin-margined, trade quanto, trade cross-exchange, trade spot &amp; futures, trade expiring futures, trade USDT or USDC or USD margined. Use DeFi borrow. Many options.</p>
+</li>
+<li>
+<p><strong>Latency</strong> : Maybe you might have latency in terms of fighting to get the borrow or for moving your quotes when making but otherwise this is unlikely to be an issue.</p>
+</li>
+<li>
+<p><strong>Trading Fees</strong> : Nothing specific, see the section on this for a recap.</p>
+</li>
+<li>
+<p><strong>Leverage:</strong> Keep in mind APRs and perpetuals give you better leverage, but be smart when it comes to your exposures. Model your risk with scenario analysis. Lost too many homies to stuff like this :^(</p>
+</li>
+</ul>
+<p><strong>Triangular Arbitrage:</strong></p>
+<ul>
+<li><strong>Execution</strong> : This is probably the fastest resolution in terms of how discrete the alpha is, so there is a lot of debate on whether making it is always the best route. You definitely need a model that decides whether to make or take; don’t just assume one. There are 3 legs; it probably isn’t that worthwhile to make on the last leg since it’ll be something like BTC/USDT or ETH/USDT, but shitcoin to USDT and shitcoin to BTC (or ETH) are probably worth making into. </li>
+</ul>
+<p>Giving away some alpha: I found it was worth quoting a multiple of the taker liquidity in the book, then, if filled, taking most of the liquidity in the book, but then making the rest of it that remained. It was more of a booster of tight liquidity available than a cost improvement. </p>
+<ul>
+<li>
+<p><strong>Statistical:</strong> Does this go both ways? Should I hold inventory and cancel it out when it goes back? Can I take one leg of this as a bet? How does this affect futures? </p>
+</li>
+<li>
+<p><strong>Exposures:</strong> Need to hold inventory to quote the sell side of spot assets because borrow is too expensive. Exposures when transferring cross-exchange. Exposure to the arbitrage closing when doing cross-exchange if one leg requires inventory that is transferring.</p>
+</li>
+<li>
+<p><strong>Universe Expansion</strong> : More tickers</p>
+</li>
+<li>
+<p><strong>Scope Expansion</strong> : More exchanges</p>
+</li>
+<li>
+<p><strong>Latency</strong> : Spamming limit IOC's at levels that would create an arbitrage in case the price moves there you get hit first. Many ways to optimize outlined in my latency optimization article.</p>
+</li>
+<li>
+<p><strong>Trading Fees</strong> : Nothing specific, see the section on this for a recap.</p>
+</li>
+<li>
+<p><strong>Leverage</strong> : Again, nothing too specific. We may want to use external lenders because Spot is not very capital-efficient, whereas for funding, arbitrage futures are very capital-efficient. You can use margin trading mode and borrow USDT, but this is really expensive. </p>
+</li>
+</ul>
+<p><strong>Spot-Spot Arbitrage:</strong></p>
+<ul>
+<li>
+<p><strong>Execution</strong> : This is an in-between of funding arbitrage and triangular arbitrage. You don’t have the same amount of timing flexibility to get into the trade as with a funding arbitrage, but you are still not at the level of pressure a triangular arbitrage has. </p>
+</li>
+<li>
+<p><strong>Statistical:</strong> Does this go both ways? Should I hold inventory and cancel it out when it goes back? Can I take one leg of this as a bet? Can I hedge with futures? Is this an arb or a premium because it is plummeting? Optimal transfer point.</p>
+</li>
+<li>
+<p><strong>Exposures:</strong> Need to hold inventory to quote the sell side of spot assets because borrow is too expensive. Exposures when transferring cross-exchange. Exposure to the arbitrage closing when doing cross-exchange if one leg requires inventory that is transferring.</p>
+</li>
+<li>
+<p><strong>Universe Expansion</strong> : More tickers</p>
+</li>
+<li>
+<p><strong>Scope Expansion</strong> : More exchanges</p>
+</li>
+<li>
+<p><strong>Latency</strong> : Many ways to optimize outlined in my latency optimization article, but apart from moving limit orders or any immediately taking on exchange parts, there will be a multiple minute delay during the transfer that can’t be resolved without borrow access (which is expensive).</p>
+</li>
+<li>
+<p><strong>Trading Fees</strong> : Nothing specific, see the section on this for a recap.</p>
+</li>
+<li>
+<p><strong>Leverage</strong> : Again, nothing too specific. We may want to use external lenders because Spot is not very capital-efficient, whereas for funding, arbitrage futures are very capital-efficient. You can use margin trading mode and borrow USDT, but this is really expensive. </p>
+</li>
+</ul>
+<h4>Final Remarks</h4>
+<hr />
+<p>There are many ways to improve a strategy, and this should serve as a basic overview that tries to generalize these ways. This is by no means exhaustive and there are often very specific upgrades to each strategy that reflect the unique nuances of that strategy.</p>
+<p>I hope this was a good read; enjoy the day!</p>
+</article>
+</body>
+</html>
