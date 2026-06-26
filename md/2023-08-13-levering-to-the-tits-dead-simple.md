@@ -1,0 +1,111 @@
+# Levering to the tits - dead simple alpha
+
+Source HTML: [`html/2023-08-13-levering-to-the-tits-dead-simple.html`](../html/2023-08-13-levering-to-the-tits-dead-simple.html)
+
+# Levering to the tits - dead simple alpha
+
+| 항목 | 값 |
+| --- | --- |
+| 날짜 | 2023-08-13 |
+| 접근 | 유료 |
+| URL | https://www.algos.org/p/levering-to-the-tits-dead-simple |
+| 부제 | Looking back at a dead, simple, and stupidly profitable strategy. |
+
+---
+
+[![What are Stablecoins? | Beginner's Guide to Stablecoins | Swyftx Learn](images/b5b7476e2c2a.png)](images/13b8bd321bd6.png)
+
+#### Introduction
+
+---
+
+In this post, we will take a look back at a strategy that used to work very well (2021/2022) but no longer has any juice. This is an interesting case study to explore because it really wasn’t that complex, but because of the area of strategies it falls under, there was a serious lack of capital in the strategy - leading to >200% p.a. returns.
+
+#### Index
+
+---
+
+1. Introduction
+2. Index
+3. General Overview
+4. Orderbook Behaviour
+5. Trading Considerations
+6. Leverage Considerations
+7. Practical Implementation
+8. Conclusion
+
+#### General Overview
+
+---
+
+This strategy is very simple in nature and is, basically, market-making on stablecoin to stablecoin pairs with a lot of leverage. If the asset starts to depeg, we stop market making. Otherwise, we aim to churn as much volume through the book as possible.
+
+A good example would be BUSD/USDT on Binance. The returns prior to the strategy decaying away were around 20-30% per year just by churning the orderbook. This is simply because those who know how to make markets look for much higher returns than this. Thus, there was a large deficit of liquidity which created very high returns for a period of time.
+
+The simplest version of the strategy would be to quote at the best bid/ask, and for any inventory we acquire, we put it on the other side of the book immediately. As you can see, this is a stupidly simple strategy
+
+With leverage costs of 7%, returns can easily exceed 200%. We will discuss leverage and exchange risk in its own section.
+
+Most major exchanges have 0 maker fees for stablecoin pairs regardless of fee tier, which made it very accessible, although the leverage cost/availability component certainly was dependent on tier & institutional connections.
+
+#### Orderbook Behaviour
+
+---
+
+Looking at BUSD/USDT on Binance, most of the time, the orderbook is 1 tick wide. The tick increments used by the exchange will have an influence on the way the book behaves. The easiest is when the equilibrium spread is tighter than that allowed by the minimum tick increment. For our Binance pair example, as well as most exchanges & major stablecoin pairs, this is the case.
+
+The density of liquidity from midprice is a good determinant of market toxicity. If stablecoins are not in the news and there is not a significant depeg, then you can expect to see the first 2 levels contain more than 90% of the liquidity in the book. Stablecoin markets under normal conditions are almost entirely retail flow which means you’re looking at the treasury bill of market making. The flow isn’t very toxic, and the spreads are almost always the same. Low returns with low risk.
+
+One of the first things you’ll notice is that the % of liquidity on any given level is an expression of the probability that said level will become BBA. If there is a lot of size on the second level, this implies that the market expects the price to move up soon. Why does this occur? Well, it all has to do with the role of queue priority in stablecoin markets. In normal markets where spreads aren’t artificially wide through minimum tick sizes, people compete on a mix of skill (predicting the price) and bidding the spread tighter until returns are no longer attractive.
+
+In stablecoin markets, the price rarely moves much, so there isn’t much competition on skill (although we will explore a few improvements later), and the spread is artificially wide, so there is no ability to compete on price. Instead, traders compete on queue time. If returns are very good, more capital is added, the size of BBA increases, the time to get filled (length of the queue) is longer, and thus overall returns are reduced. Similarly, if the risk is increased, people lever less, capital on BBA decreases, and returns are increased. Thus, the time people are willing to wait in the queue for a fill is the main mechanism market makers compete with. This leads to hour-long queues.
+
+I have to wait an hour to get filled??? Well, if there are 24 hours in a day, and we assume we lose 1/3 of them from having to move our quotes every time that there’s a new BBA, then that’s 16 fills per day. 1-tick wide on BUSD/USDT earns 1 basis point after a full round trip (USDT → BUSD → USDT | BUSD → USDT → BUSD). That’s 8 round trips per day or 8 bps. 8 bps may sound small, but that’s 29.2% a year without compounding. Once we add leverage, this gets over 200%.
+
+The long-term mean is not necessarily 1.000. In fact, the price can never actually be at 1.000, because it must be 1-tick wide, and thus, the closest it can get will be 0.9999/1.0000 OR 1.0000/1.0001. Even ignoring this, it often is consistently a few ticks above 1.0000. When the price deviates from this mean, the distribution of liquidity will become skewed. On one side of the book, everything will be at the first level (the probability of it deviating more is unlikely compared to reversal), and on the other side, liquidity will be spread out across many levels because the probability of those levels becoming BBA is very high. When I talk about deviations, I am talking about basis point level deviations, not any significant depegs that could create FOMO and have momentum. Instead, these revert very strongly.
+
+#### Trading Considerations
+
+---
+
+Adversity often occurs from large orders in stablecoin pairs. If a large order consumes a full level of the orderbook, then it will push the price up. If it pushes the price up by 1-tick, then we will have lost all of our profit earnt from the fill. If we expect to be able to complete a full cycle before the price reverts, then we should place it at the new BBA, but if we don’t, then we should place it at the old BBA so we don’t have this happen a second time.
+
+If predicting the probability that we can complete a full cycle before the price reverts/determining the probability that any given level will become BBA sounds complicated, then we can use a very dirty approximation instead. This is the amount of liquidity on each level. Say we have some USDT, we should place sell USDT orders in proportion to the liquidity of each level.
+
+This gets tricky when we need to rebalance. If a level is suddenly very sparse, should we move our size to other levels? What if we are at the front of the queue? Another good proxy for when to rebalance a level is if we are more than a certain % of the size on a level, we should move our order. This lets us know when to rebalance but doesn’t account for our queue position. Using a parameter to adjust this % based on the estimated queue position is the best way to go about this, and then tuning said parameter in production.
+
+The idea here is that the market is probably right, and we just want to get our easy return and then lever up.
+
+Another model we may want to consider is how we skew our inventory. If are 5x levered, with 60% of that in USDT and 40% in BUSD, then this is our target inventory. Whilst we will lose money if our collateral decreases in value, if the levered capital decreases in value, it will be multiplied many times and far more disastrous. Luckily, if we have a loan in USDT and USDT depegs, then our loan obligation has also decreased in value. We could see USDT and BUSD go to 60 cents, and we would still have 60% of our money if we keep our inventory the same as our leverage currencies - no matter if we are levered 100x. This, of course, ignores any trading returns. The main takeaways are 1) lever in the stablecoins you trade & 2) skew your quotes to push your inventory towards your leverage currency composition, with aggression based on perceived depeg risk.
+
+Finally, we must consider the point where a pair is too risky to trade. We are here for the easy returns that can be levered. When prices are volatile and spreads are no longer 1-tick wide, the trade becomes far more complex, and adversity can be a much larger issue. This is probably the time to turn off quoting until things calm down. As we near this point, we may also skew our quotes, as discussed above. Depegs from USD and between stablecoins both matter.
+
+#### Leverage Considerations
+
+---
+
+We’ve already discussed the main part that you will prefer to leverage in stablecoins rather than fiat currency. Using a prime broker will allow you to increase your leverage, and there is also the ability to purchase exchange insurance with HRP. Interest will be about 7% + 5% cost of exchange insurance. This still left a lot of profit in the trade, but as returns have decreased recently, it has become very hard to beat this.
+
+We can still get up to 10x levered with isolated margin on Binance, and this leverage is even cheaper (5% ish for top VIP tier). You have pseudo-exchange insurance since if the exchange takes your money because they went bankrupt, then you’ve already repaid them the loan - even if not intentionally.
+
+There are also issues related to the maximum loan size, but this will only be a problem when trying to put large sizes through the trade.
+
+Returns are still (at current) not terrible, maybe 10% - this won’t beat prime broker leverage costs by enough to leave a return worth the risk, but if you can get cheap stablecoin loans from the exchange, then there’s maybe some juice in the trade. At the time of writing, BUSD/USDT is quite volatile, and your logic may need to get a bit fancier than it needed to be during the bull (and early bear) market (2021/2022).
+
+Said 10% is my estimate, given an incredibly basic logic without much optimization. We’ve covered a basic outline of what that is (assume the market is right), but when most of the liquidity providers for stablecoins are also assuming the market is right, there is a much easier path to improving performance than most markets, so take this as a benchmark. BUSD is also kind of a shitcoin right now, so maybe look elsewhere or get comfortable with risk.
+
+#### Practical Implementation
+
+---
+
+If you want to improve returns, then it probably makes sense to make the code very fast so that you can quickly move your quotes to the level most likely to become BBA (some people will be slow to move theirs, so there is a bit of a lag between the true probability of a size becoming & staying BBA and where the liquidity actually is). This lag also occurs because of the value of queue priority I discussed earlier, but most people are copying each other, so once a lot of size moves, other size tends to follow, and if you can quickly spot that size moving and move first, then all the other bots will join the queue behind you.
+
+All of this said, it is super easy to implement this using Hummingbot. There just isn’t a very complicated logic set, and quoting some stupid BBA logic is probably good enough - leaving time to make alpha elsewhere.
+
+#### Conclusion
+
+---
+
+This is a strategy I think is very interesting to share because it really didn’t deserve to have that high of a return. This return has, of course, decreased, but with cheap exchange leverage and improved logic, the returns are still pretty good. Stablecoin markets are a great introduction to market making because the market is so mechanical, and the effects are very clear.
+
+It’s also far easier than normal market making because we earn our return as compensation for waiting in the queue, not compensation for being smarter than other market makers. This is great if you aren’t smarter than other market makers.

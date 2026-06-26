@@ -1,0 +1,265 @@
+# Market Making For Dummies [CODE INSIDE]
+
+Source HTML: [`html/2024-08-26-market-making-for-dummies-code-inside.html`](../html/2024-08-26-market-making-for-dummies-code-inside.html)
+
+# Market Making For Dummies [CODE INSIDE]
+
+| 항목 | 값 |
+| --- | --- |
+| 날짜 | 2024-08-26 |
+| 접근 | 유료 |
+| URL | https://www.algos.org/p/market-making-for-dummies-code-inside |
+| 부제 | Everything you need to know about how to do it |
+
+---
+
+[![Inform Trading Decisions Using Global Order Books for Bitcoin](images/e1cc0a8a4142.gif)](images/36a21b3aa5f3.gif)
+
+### Introduction
+
+---
+
+The first part of the below text is available on roadmap Chapter 19 as part of the market making mini-guide. This article is an extension of that text by a fair bit and covers a lot more depth. Nonetheless some text is repeated verbatim.
+
+Market making isn’t the easiest way to make money – that’s for sure, but it scales a lot better than arbitrage strategies, and you don’t have to worry about the trade eventually dying out. You can still have your lunch eaten, and markets can still get more competitive over time, but with arbitrage you know there will be a day when you can no longer compete, and you need to constantly think about growing into a new trade.
+
+For many people, that new trade is market-making. They begin making into the arbitrage to try and get a leg-up on their competitors and improve their fills, and in no time, they are market makers. This is a common path I tend to hear about and have experienced myself.
+
+Now, that I’ve talked a bit about how people end up doing it – let’s get down to what matters. Your priorities are as follows:
+
+1. Edge
+2. Spreads
+3. Risk
+
+### Edge
+
+---
+
+Edge manifests itself via your ability to accurately forecast mid-price, and to react to events with low enough latency. If you consider yourself more of a statistical person and don’t know what you are doing on the latency front – either prepare to learn or move up into the minute frequency because you need to optimize latency at some point in the trade. That or pick an absurdly inefficient market.
+
+How long should my forecast horizon be? Well, it’s based on how long you expect to hold. That’s the period you care about, after all. That said, we can see a pretty exponential decay in the level of the signal once filled when measuring adversity, and you probably wouldn’t want to get a fill like that, to begin with. That said, if you are extremely fast and only care about the ultra-short-term, then forecast out that far because that’s where you have the best forecasting edge anyway. The same rule is a bit iffier when it comes to whether you should just ignore adversity if you plan on holding inventory for longer – at that point, you end up thinking about taking and can treat the adversity as a trading cost.
+
+In digital assets, which is my background, and where I feel is the best place to be due to the ease of getting started (in equities you would need be extremely well funded due to the high barriers of entry), there are 3 major asset types:
+
+- Perpetuals
+- Spot
+- Options
+
+When it comes to estimating the fair value for perpetuals, we take these variables:
+
+1. Globally weighted (by volume) mid price
+2. Globally weighted (by volume) index price
+3. Local index price
+4. Local mid price
+5. Stablecoin rates (for converting between contracts)
+
+These are all part of how you determine the fair value. Local refers to the specific exchange that you are on, and global refers to the aggregate of all exchanges. You can see global as a leader, which pulls all the laggard exchanges, so you factor it in when calculating where prices will go.
+
+In a simplified model, we can take Binance mid-price, which represents a good proxy for globally weighted mid-price due to its high market share and then regress Binance mid-price basis against our exchange of choice with future mid-price changes for our exchange of choice. What we will find is that it’s highly predictive because our smaller exchange tends to follow Binance. Now, similarly, we can scale this out to many exchanges using a globally weighted volume index.
+
+We can also then bring in more predictive factors such as the lead-lag relationship between spot prices, funding rates, volatility, rate of trading, book imbalance, momentum and many other predictive features for improving our midprice. This is something we will tune over time as we add more information from other factors and tune our understanding of how the prices evolve. You’ll notice eventually that there are clear regimes of when spot prices lead and when perpetual prices lead, so this is worth being able to include.
+
+For spot, it is relatively the same problem, but we don’t need to consider any sort of index prices or funding rates. However, we do need to consider triangular arbitrage bounds, and cross-exchange arbitrage bounds a lot more. I will talk about this as part of the hitting machine section.
+
+For options, it becomes a fair bit more complicated. I talked extensively about how this is done in my finding FV article which mostly dove into options fair value estimation, and provided the code to do so as it isn’t very simple:
+
+[![Finding Fair Value [CODE INSIDE]](images/ea553a6c0209.png)Finding Fair Value [CODE INSIDE][Quant Arb](<https://substack.com/profile/101799233-quant-arb>)·March 10, 2024[Read full story](<https://www.algos.org/p/finding-fair-value-code-inside>)](https://www.algos.org/p/finding-fair-value-code-inside)
+
+### Spreads
+
+---
+
+Spreads are about how wide you are. It’s not so much how wide you are on average, that’s actually quite easy to tune. Say I want to be X% of the volume in this asset, I tune my spreads until I am. You can also tune off PNL, but that’s a lot noisier so that component that tunes your spread should focus over a longer period of time, with a much shorter tuning based around the volume of the asset.
+
+A starting point of reference for your spreads can be the EWMA of the spread width over time. This will put you in a bad position if spreads blow out, so your next step is figuring out when this is wrong – i.e. when this is the worst advice you’ve ever heard.
+
+### Economic Events
+
+---
+
+Economic events are an obvious time when you may not want to be quoting. There’s going to be a brief few seconds where everyone who trades are the people who have just got the event data before you could and are now on a mission to eat your lunch, but prior to the event… go-ahead, at that point it’s just retail goons who want to bet on CPI. That is unless you suspect information leakage… there’s a Nanex article on that, which is one of many reasons I’ve put it in the HFT resources.
+
+### Risk Management
+
+---
+
+Now, on to risk. This is the part that gets focused on the most by everyone. It’s the reason you see these complicated equations to balance your inventory, but in reality it’s not a great idea to do that. Those correlations you see in your models don’t necessarily hold and they can often be a reason for your algorithm to take on tons of *toxic* inventory because it believes it’s fully hedged against another asset. In this regard, you get adverse filled against when this correlation does not hold. You get adverse filled against damn near anything you can beadverse filled on in all honesty.
+
+### Hitting Machine
+
+---
+
+Many market makers start out as arbitrageurs and, hence, have very strong ideas about what prices are fundamentally wrong and worth pursuing. Often, you’ll have what's called a hitting machine that manages your hidden quotes. That is to say the prices you are willing to trade at but are not posting in the book.
+
+[![](images/2891b7573ba9.png)](images/706d53076d87.png)
+
+In the above diagram, the darker colours are our visible orders, and the lighter ones are our hidden orders. They are not real orders, so to speak; they are the price that we are willing to take liquidity at. If an order matches ours (someone places it tight enough), then we hit it.
+
+We constantly evaluate how much we value risk, and this then changes our willingness to hit people. If we can take off risk for less than it costs to put it on, then we’ll do it. We should add a large margin to ensure a profit because our estimation of whether we can then put that risk back on for a good profit may not necessarily be true.
+
+If we are market-making on a highly non-toxic exchange, likely one of the smaller exchanges, then we can take against the other market makers on that exchange as a way to dump toxic inventory accumulated on bigger exchanges using our hitting machine.
+
+Arbitrages may manifest because another MM has too much risk on one exchange. If we don't have much risk on that exchange, then we happily take the inventory off their hands at a great premium, locking the position into our arbitrage book. Some exchanges are simply slow to react, so we can lock in arbitrages for this reason as well.
+
+Either way, hitting machines is not simply so that we can do arbitrages if we have already got a maker to fill on one leg or otherwise correct price discrepancies. It is also because we have risk we can take off on one exchange for less than we can pick it up on another exchange. It may not show up as an arbitrage traditionally, but when you tally up the mark-outs you’ll find they add up positively.
+
+### 
+
+### Diming Logic & Game Theory
+
+---
+
+What is diming logic? This is the logic of “one-upping” or someone in order to beat their price and get priority. If the best bid/ask is 9/15 and I’m willing to quote 11/13 why not just quote 9.01 and 14.99 (assuming 1c tick size)?
+
+It’s an easy improvement to implement where you ensure you dine whoever is the next best order, saving a few cents here and there.
+
+There is of course the argument that by tightening spreads, traders are more likely to trade against you, but the numbers say otherwise. If there is no risk of a bidding war with other participants and we don’t have some exchange rule about diming (diming logic can increase our cancel/fill ratio which is a common liquidity quality metric exchanges use - we don’t need to optimize this that much but if you really care about it then this may be a consideration), then we pretty much always find diming logic to be optimal.
+
+Here’s a code example:
+
+[![](images/79204ec2d254.png)](images/a9da7df6a78c.png)
+
+```
+def apply_diming_logic(self, 
+                       bids: list[(float, float)], # bids (price, amount)
+                       asks: list[(float, float)], # amount (price, amount)
+                       px_tick_sz: str # Price tick size
+                       symbol: str, # Symbol/ticker
+                       ):
+
+    # Get whether we have a buy /sell order active
+    buy_maker_active, sell_maker_active = self.get_orders_present(symbol)
+
+    # Get the fair value price we would otherwise quote pre-diming logic
+    fv_maker_bid_price, fv_maker_ask_price = self.create_markup(symbol)
+
+    for price, amount in bids:
+        if price < fv_maker_bid_price:
+            if buy_maker_active:
+
+                # Pulls the size / amount of the order we have in the book
+                existing_px, existing_amt = self.inv_mgr.ob_mgr.get_maker_quote(
+                    symbol, "buy_maker")
+
+                if price == existing_px and amount == existing_amt:
+                    maker_bid_price = price
+                    continue
+
+            maker_bid_price = round(price + px_tick_sz, 7)
+            break
+
+    for price, amount in asks:
+        if price > fv_maker_ask_price:
+            if sell_maker_active:
+
+                # Pulls the size / amount of the order we have in the book
+                existing_px, existing_amt = self.inv_mgr.ob_mgr.get_maker_quote(
+                    symbol, "sell_maker")
+
+                if price == existing_px and amount == existing_amt:
+                    maker_ask_price = price
+                    continue
+
+            maker_ask_price = round(price - px_tick_sz, 7)
+            break
+```
+
+On the topic of game theory, there are often concerns about skewing. We typically don’t want to skew past our theo (which is the price we would quote assuming we have no inventory).
+
+[![](images/31e4737708f9.png)](images/57625bdabd57.png)
+
+This is because of signalling, and if we have a quantity large enough to move the market, we need to ensure that we are not pushing the price up by bidding too aggressively, or others will be able to easily detect it. This mostly only matters if you are a large player who can move the market /or are doing lots of OTC flow where this flow has not been uncovered by the market yet so you want to secretly dump it.
+
+Similarly, removing a quote from the book may give away that you are overly extended so it simply becomes wise to extend your quote so far out that it will never get filled. In the above diagram, we see a heavily skewed book where the buys are extremely far from theo and the sell order is as close to theo as possible without crossing it.
+
+### The Role of Arbitrage in Digital Asset Markets
+
+---
+
+When you are market making, you also may be thinking about having a hitting machine as discussed earlier, but one core thing that sets crypto apart from other markets is the role of arbitrage. In some markets, you are not even allowed to arbitrage between exchanges. In crypto, you have Bitcoin on 400+ exchanges whereas you have AAPL on only NASDAQ and to some extent Eurex where it’s listed as a derivative product (but with a fraction of NASDAQ’s volume so it barely poses a risk to the MMs on NASDAQ).
+
+So because of this you end up with about 50% of your adversity cost coming from arbitrage related pickoffs, or at least the price on your exchange being led by prices on the other.
+
+### Queue Value
+
+---
+
+This isn’t a particularly large part of the equation in most markets but it is worth thinking about. Especially in markets where the market almost always trades 1 tick wide, or there are very large tick sizes. We can see the difference below between two exchanges where there is a large taker fee on Bitmex but a low one on Binance:
+
+[![](images/d8cc77af1932.png)](images/2dcd91646a74.png)
+
+Due to this, if you want to reconcile the prices, you need quite a large differential in order to make it worth your while. Thus, the prices become a lot “stickier”, and as a result of this you want to keep your position in the queue.
+
+### Rebates as Minimum Spread
+
+---
+
+Often people see rebates and think free money, but you should better think of it as the minimum spread on the exchange. If the spread would naturally be 1 bp wide but there is a rebate of 2 bps then the spread will settle at 1 tick wide, but everyone will earn 2 bps + 1 tick. So in that light, it makes it more profitable to be a maker than the market equilibrium.
+
+So through this, rebates that are better than the usual market spread effectively tilt the market equilibrium in favour of the market makers. In return of course, the exchange can tell makers that in order to keep the rebate they must achieve a certain level of liquidity quality. Exchanges trade a little bit more spread on average to the market makers in exchange for much less fleeting liquidity and other attributes of high quality liquidity in return from the market makers.
+
+This rebate typically gets charged to retail via an increase in maker fee, although on some exchanges, the exchange simply takes the cost. Because of the fact that for most exchanges the cost gets passed onto the takers via the increase in taker fee, it really is an increase in the minimum spread for both parties (minimum spread earnt by the maker and minimum spread paid by the taker).
+
+### Relative vs. Absolute Marks
+
+---
+
+When working with arbitrages, you are looking at relative marks, i.e. given one exchange how does another exchange look instead of absolute marks where you look at a forecast of where the price is going on that exchange and every other exchange is simply a feature that is factored into the forecast.
+
+The issue with relative marks is that not everything is entirely comparable, despite our best efforts. Assuming, two futures will always meet at 1 is not necessarily the best idea - they can stay apart for a full year because we may be a in a bull market - even if they are on a normalized basis the exact same contract (we are referring to a normalized 1 ratio here then).
+
+So we instead think about whether they have diverged a lot relative to their historical levels. This is the way to go about it and becomes a core mindset shift in market making. You also can do this mindset shift in arbitrage and it’s also a really good idea to do for this strategy as well, but it becomes a necessity when transitioning to market making.
+
+### Competitive Trades
+
+---
+
+What are competitive trades, and what are uncompetitive trades? Typically, I find that the most advanced markets are those that have a lot of size and can easily have knowledge transferred from TradFi. So if you’re looking at BTC & ETH on the main CEX’s then you’ve got a lot of capacity and the dynamics aren’t too far off of TradFi. There are always crypto specific dynamics such as latency, the role of arbitrage, and all the shenanigans that happen in DeFi that mean that it keeps TradFi professionals out of those heavily crypto specific niches.
+
+TradFi has for the most part “figured it out” when it comes to market making so you want to search for places that have strange dynamics and edges that don’t have a carry over from TradFi and you want smaller sized markets that won’t see the same level of attention.
+
+So you end up with DeFi market making, and smaller capitalization assets being some of the better places to start finding edge as a beginner. BTC & ETH on major exchanges are in contrast a lot more competitive and require a lot of working towards.
+
+Finally, not all market making is non capital intensive. Some of it such as quoting wide, and especially so in smaller markets, is very easy to profit from because there is a lack of capital there. You can also see making into funding arbitrage positions as a form of liquidity provision, but instead in this case a transfer of liquidity to reconcile prices. These two examples I bring up because they become extremely profitable in bull markets but seem to die off in profitability in bear markets. They are a function of the demand vs supply dynamic for capital that provides liquidity to market participants.
+
+### Market Cap Dynamics
+
+---
+
+The most profitable markets for most market makers tend to be the smaller capitalization tokens. They lack liquidity so it often ends up that most of your profit will be from non-majors but most of your volume happens in majors. This varies depending on how much you are looking to run, but typically there is a much greater ROI for smaller cap assets.
+
+This is only true up to a certain point because when you go extremely small cap then there becomes a due diligence requirement so you don’t get rugged. The reason for this largely stems from the increase in holding times and need to hold risk when you have smaller cap and lower volume assets. There is a great premium on offer to do this and it’s very worthwhile, but only if you know there won’t be an extreme level of adversity cost from founders dumping lots of inventory and rug pulling the token.
+
+### Holding Risk
+
+---
+
+How much risk to hold depends on the toxicity of the flow and the level of volume. When there is less volume there will be naturally more of a need to hold inventory and you’ll get a larger premium in the spread for doing so. In my own findings I see that for smaller cap assets you want to hold the risk quite a bit, and not skew too aggressively because that is the only way to be competitive when the flow is non-toxic.
+
+Non-toxic flow will decrease the spread to the point where holding risk becomes a requirement. This can change the variance of the PNL but generally it is worth it. You’ll have bumpier PNL because of the increase in inventory being held, but unlike trading in BTC & ETH that inventory isn’t toxic so you get a very nice premium from holding it.
+
+Aggressively working out of those positions will cost you too much and make you uncompetitive. Especially because you’ll have to dump on toxic exchanges that won’t cut you slack on the spread because they have no idea that your inventory was acquired from a non-toxic venue.
+
+### Latency
+
+---
+
+Let’s talk a bit about latency. You have 3 main types of latency:
+
+1. Data feed latency
+2. Taking latency
+3. Maker cancel latency
+
+Maker cancel latency tends to be the most important as a market maker, which is followed by the data feed latency and finally by the taker latency, which really only affects your hitting machine. Many MMs don't even have taking enabled in their systems, so this may not be a concern at all.
+
+You can optimize this latency by locating it next to the optimal region for each exchange. For every exchange you have a trade instance, and you locate that in the AWS region that is optimal. Then, you end up with a distributed system of nodes which make up your market maker. Finally, you can forward any information to other nodes in the network to improve speed. I.e. if my Okx node gets information about a fill, it then broadcasts that to the other nodes because private fill information tends to get sent out before trade information so now all my other nodes in the network can have a speed advantage. It can often be the case that you simply forward on public messages like trades because that route ends up being faster than direct streaming. The fastest message will arrive first anyways and you’ll discard the rest so it doesn’t particularly matter.
+
+In this prior article, I talk a lot about how to optimize your latency
+
+[![Low Latency Dup. Data Aggregation](images/5d7908bb5349.png)Low Latency Dup. Data Aggregation[Quant Arb](<https://substack.com/profile/101799233-quant-arb>)·October 8, 2023[Read full story](<https://www.algos.org/p/low-latency-dup-data-aggregation>)](https://www.algos.org/p/low-latency-dup-data-aggregation)
+
+### Finally…
+
+---
+
+These are just my thoughts afterall, but I think it’s a half decent run through on the basics of it all. Keep refining your system with new insights – it’s all quite mechanical and clear afterall, and eventually you’ll make money.
