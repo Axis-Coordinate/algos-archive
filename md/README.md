@@ -10,6 +10,7 @@ Converted from `html/` for GitHub-friendly browsing. Images are duplicated under
 
 - top5-analy — [Top 5 글 상세 분석 (Axis 관점)](top5-analysis.md)
 - perpetual- — [Perpetual Arbitrage 전략 분석 (algos.org #6 + #7)](perpetual-arbitrage-analysis.md)
+- 2026-06-29 — [Lessons from the Desk](2026-06-29-lessons-from-the-desk.md)
 - 2026-06-17 — [HFT Alphas Pt. 2](2026-06-17-hft-alphas-pt-2.md)
 - 2026-06-08 — [HFT Alphas Pt. 1](2026-06-08-hft-alphas-pt-1.md)
 - 2026-04-26 — [More Advanced Latency Tricks!](2026-04-26-more-advanced-latency-tricks.md)

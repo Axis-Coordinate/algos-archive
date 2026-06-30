@@ -1,0 +1,197 @@
+# 2026 06 29 Lessons From The Desk
+
+Source HTML: [`html/2026-06-29-lessons-from-the-desk.html`](../html/2026-06-29-lessons-from-the-desk.html)
+
+### Introduction
+
+---
+
+Over my career I have held the title of Head of Quantitative Research at various hedge funds and proprietary trading firms, overseeing the trading of significant amounts of capital and the development of advanced research pipelines. Coming into a firm and dictating research direction is quite the task, and one that has given me many lessons which I thought I would share today.
+
+This is not as niche a role as it might sound, as one of it’s core tasks is to build and maintain a successful research pipeline which is broadly applicable in many contexts. You may not be managing tens of people, but if you are looking to make money in quantitative trading, with the exception of a few rare latency- or developer-driven strategies, you will need a successful research operation within the firm. Even within latency teams there will be research pipelines around latency optimisation. Almost every firm and every desk has to approach the task of developing these capabilities in its beginnings, and maintain them as it grows.
+
+What follows are the four things I have found matter most: the people, the tooling, the data, and the relentless sense of urgency that ties them all together. I have also included some code examples for the eager reader.
+
+The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.
+
+### The Personal Component
+
+---
+
+The people on your team are your greatest resource, which is exactly why this is the first section. The difference between a team of A players and a team of B players is the difference between making and losing money as a firm. I have only seen B player teams succeed at uncompetitive trades (carry, momentum, etc), and in the ultra-competitive world of market making, etc I have never seen a successful team that I wouldn’t deem to be almost all A players.
+
+The first complication is remote work. Some people work very well remotely, but most do not. It is mostly senior, experienced researchers and developers who do well in a remote context — not juniors. Juniors typically need more guidance, management, and mentoring, which usually means it is vastly preferable to have them working in person. I have found remote work to be a barrier even when the person clearly works very hard and puts in long hours, simply because they require a lot of guidance on tasks that would be much better achieved with them sitting nearby in the office. New teams, and large teams also suffer extra from remote work, when there is an intense build out associated with the creation of a new pod or desk then it is critical to have tight communication loops. In the past, I have not found remote work to be a successful for large teams or for teams where heavy communication is required (a very intense buildout is occurring, made especially worse if it involves a large team doing said buildout).
+
+That said, if you strictly mandate in-office hiring you will miss out on a lot of great talent. When an exceptional researcher comes across my desk, for me it is usually every 9–12 months, and always through my own network. It is almost always a remote hire (though this is specific to my network having a lot of remote people; if you know more people, this will happen more often). You want to take advantage of these people when they become available, because it is very hard to find A players precisely when you want to hire them. The best talent becomes available when it happens, not when it is convenient for you. It is wise to keep an open hiring policy for exactly these moments. The best talent does not come from a job posting on LinkedIn! It is my view that you need an exceptionally well run team (often tight knit and with everyone independently motivated towards the mission) to do it fully remote and for in person teams it is harder to get the talent but easier to manage the talent and ensure productivity.
+
+Another point I have found is that for cases when you are specifically hiring for a role you do not have the capabilities for in your own team, then raw intelligence is not enough on its own; you need people with the *specific* knowledge the problem requires. If your problem is options execution, you need to find someone who has already learnt options execution at an established player. It is much harder to hire someone smart without that experience and have them figure out how to do options execution from scratch. There is a huge amount of information that lives in the minds of those who have worked at certain firms, and the only way to get access to it is to have worked there yourself or to hire someone who has. This is why firms like to hire ex-Citadel / JS / SIG / Jump people. It is probably true that the idea of some magic Citadel alpha that every Citadel researcher knows is a falsehood - but generally, if you want to do well, you need to hire people who have learnt how to do the task at a successful operation.
+
+### Build the Tooling First
+
+---
+
+Everyone wants to sit down and immediately start hunting for alpha, but you need to start with the tooling and research infrastructure before any meaningful analysis can occur.
+
+This is a double-edged sword, and it should not be confused with the premature development of infrastructure. Many of the most successful trading operations I know built initially slow and messy systems, only to refactor them into well-polished (and slow-to-develop) mature systems later, after they had already generated significant PnL. This even happened on my own desk at a firm I was at. The early mistake is the opposite one: failing to develop *any* proper research infrastructure. Realistically it only takes a couple of weeks for a very motivated team to build great tooling to regularly scrape, analyse, and manipulate data. Anything longer and you are overcomplicating it. An easy-to-use, effective research pipeline is extremely important to the success of any team.
+
+Some core rules, the things you should never let yourself do:
+
+- **Never scrape or pre-process data you already knew you’d need.** All data should be automatically scraped and pre-processed as part of a daily cron job. Manually pulling data you could have anticipated is a huge time killer.
+- **Never write a backtester per alpha.** Your testing tooling should be standardised, optimised, and pulled from a library. If your backtester can’t handle a particular type of alpha logic, upgrade the backtester — do not spin up a new one for each alpha. That will massively slow down your research process.
+- **Pre-merge data that is often merged.** If, say, you use the top 50 cryptocurrencies by market capitalisation and want their 1d OHLCV bars, you should not be loading many separate files and writing a for-loop with logic that filters a rolling top-50 list and scrapes the dates. That is slow. Have them already merged into one file. If you find yourself merging a particular set of data often (e.g. all top-50 coins, 1h data), create that merged file and generate it as a cron job.
+- **Never load data outside your tooling.** You should have a fast data loader where you specify the symbol, date range, data type, and provider, and it loads. Behind the scenes that is a filter finding the relevant files, looping through them, loading, and concatenating — but you should not be rewriting that logic every time. Better yet, optimise it: use `pd.read_csv` with `engine='pyarrow'` (this is *not* the default) for CSV files, and use Polars for Parquet files, which is fastest even once you account for converting back to pandas. Polars and pandas have similar merge times, so either is fine for the merge.
+- **Create notebook templates.** If you follow a fixed set of steps when testing an alpha, build a dummy template notebook so that all you have to do is define the alpha and its input datasets and hit run. Then you only need to copy one notebook instead of pulling 20 cells from various notebooks.
+
+Once you have a setup where you write as little code as possible and get results in your hands as fast as possible, you have a great research pipeline. Iteration speed is everything. If you can write the code faster - because more has been abstracted away , and it runs faster, because the code is optimised and the data is pre-generated, then you can test more ideas. If you can do 10x as much work as the next person, you win. That is the real secret to a successful research operation: find ways to do more with the same time.
+
+### The Data
+
+---
+
+Great data does three things: it exists, it is correct, and it is easy to work with.
+
+**It exists.** This is the most important of the three. If you didn’t bother to collect the data in the first place, then either you cannot complete the analysis at all, or you have to reconstruct it from historical sources that may be less accurate — and you will waste a lot of time doing it. Imagine you are running an arbitrage book and need to calculate historical arbitrages. It is fairly expensive to compute many combinations at the tick level, so now you have to scrape and pre-process Tardis data, write out the arbitrage logic, generate the data, probably wait half the day (if not longer) for it to finish, and only then do you have your arbitrages. If instead you had simply been tracking every arbitrage all along, you could have filtered them straight out of a dataset. If you don’t yet have that dataset but know you are likely to need it often, you can pre-generate it historically — but the best data to collect is the easiest, which is usually real-time data.
+
+**It is correct.** Write tests for your data so that when they are violated you investigate, note an error, or manually bypass it. Think of it like a unit test: you should always be checking for anomalies. Market cap dropping 90% in an hour and then recovering shortly after, for example, is very strange. Sudden changes in price are alarming, and should be *extra* alarming when they come back in an extreme timeline. If you are using alternative datasets, you often need to apply a delay if the data is not truly point-in-time, ideally it is PIT, but not always, and timestamps may be left-labelled rather than right-labelled. Clean up your data before you work with it, and ideally have that done before you ever need to use it.
+
+**It is easy to work with.** At one firm I was at, we had been lazy with some of our data collection and dumped it into DynamoDB instead of a proper time-series database. As we scaled up, it grew into the terabytes, and, the $30,000-a-month AWS bill aside, it was completely unusable, because DynamoDB makes you scan the entire database to work with it. That is an extreme example, and we did eventually fix the infrastructure, but the lesson stands: store your data properly and apply your pre-processing up front. If you are storing all arbitrage opportunities, bucket them at the file level so that specific dates or tickers can be read in isolation without loading extras. And if, for example, you only trade opportunities over 20% APR, keep a separate >20% APR database too, it will be much smaller, and since that is a common dataset to load, it saves you from re-running an expensive filter. Running expensive filters twice is not ideal; try to avoid it.
+
+### Delays Kill
+
+---
+
+There is a mile of difference between the pod that stays up until 2am until the issue is fixed, and the pod that will get to it the next morning when it’s convenient. This isn’t a difference of work ethic, it’s a difference of urgency. Work ethic matters, but the pods that do well have an extreme sense of urgency about everything they do, and it makes them work extremely efficiently. There is no option to spend two weeks on a piece of analysis; it needs to be done today, and so they find a way to get roughly the same result for 10% of the effort. The 80/20 rule, in practice.
+
+Allowing any delays into the research pipeline kills that sense of urgency, and with it all the productivity gains that come along with it. This is partly cultural and will depend heavily on who you hire, but it also comes down to your pipeline.
+
+That is what much of this article has really been about. Tooling should make things easy, and it should be fast. Waiting on slow code is, in many cases, a fixable problem. Now that we have LLMs, writing your tooling out in Rust is often far quicker than waiting on slow Python. For example, I took one of my forecasting models from 8–12 hours down to 15–20 minutes by rewriting it in optimised Rust, and it took me no more than an hour to do using Claude. There is always a way to make code run faster, and the days when optimising would take longer than the time it saved are gone, you should be taking advantage of that (to the extent that it makes sense, don’t optimise a 20 second task).
+
+Get these four right: the people, the tooling, the data, and the urgency that connects them, and you have the foundations of a research operation that actually makes money.
+
+### Code Examples
+
+---
+
+A standard data loader for Tardis data which assumes you pre-process raw trades into trade bars at various frequencies (parquet) and save the raw files in their native .csv.gz format that Tardis uses. It loads parquet with Polars (fastest), and .csv.gz with Pandas Pyarrow (fastest):
+
+```
+from datetime import datetime
+from pathlib import Path
+from typing import Literal
+
+import pandas as pd
+import polars as pl
+
+ROOT_DIR = "..."
+
+OutputFrame = Literal["pandas", "polars"]
+MissingPolicy = Literal["skip", "raise"]
+
+def load_tardis_data(
+    start_date: str | datetime,
+    end_date: str | datetime,
+    *,
+    market: str,
+    instrument: str,
+    kind: str = "trades",
+    freq: str | None = "klines_1min",
+    root: str = ROOT_DIR,
+    fields: list[str] | None = None,
+    missing: MissingPolicy = "raise",
+    frame: OutputFrame = "pandas",
+) -> pd.DataFrame | pl.DataFrame:
+    """Load local Tardis data for a date range.
+
+    ``freq=None`` loads unprocessed compressed CSV files with pandas/PyArrow.
+    Any concrete frequency loads processed parquet with a lazy Polars scan.
+    """
+    storage_key = "unprocessed" if freq is None else freq
+    paths = [
+        Path(get_data_path(day, kind, storage_key, market, instrument, base_dir=root, vendor="tardis"))
+        for day in pd.date_range(start_date, end_date, freq="1D")
+    ]
+    present = [path for path in paths if path.exists()]
+
+    if missing == "raise" and len(present) != len(paths):
+        raise FileNotFoundError(next(str(path) for path in paths if not path.exists()))
+
+    if freq is None:
+        parts = [pd.read_csv(path, engine="pyarrow", usecols=fields) for path in present]
+        data = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame(columns=fields)
+        return pl.from_pandas(data) if frame == "polars" else data
+
+    if not present:
+        return pl.DataFrame(schema=fields) if frame == "polars" else pd.DataFrame(columns=fields)
+
+    scan = pl.scan_parquet([str(path) for path in present])
+    data = scan.select(fields).collect() if fields else scan.collect()
+    return data if frame == "polars" else data.to_pandas()
+```
+
+And then you should have some sort of daily scraping script like this:
+
+```
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Iterable
+
+import pandas as pd
+
+StorePath = str | Path
+
+def previous_utc_day(now: datetime | None = None) -> date:
+    """Return the most recent complete UTC day."""
+    clock = now or datetime.utcnow()
+    return (clock.date() - timedelta(days=1))
+
+def active_binance_perps(day: date) -> list[str]:
+    """Return Binance Futures perpetual contracts available on the requested day."""
+    catalog = get_tardis_exchange_symbols("binance-futures")
+    live = catalog[
+        (catalog["type"] == "perpetual")
+        & (catalog["availableSince"].dt.date <= day)
+        & (catalog["availableTo"].dt.date > day)
+    ]
+    symbols = live.index.str.upper().sort_values().to_list()
+    return symbols
+
+def fetch_binance_futures_day(
+    day: date,
+    destination: StorePath,
+    symbols: Iterable[str],
+    datasets: Iterable[str] = ("trades", "quotes", "derivative_ticker", "liquidations"),
+) -> None:
+    """Download one Binance Futures Tardis day and write raw plus derived files."""
+    stamp = day.isoformat()
+    for symbol in symbols:
+        for dataset in datasets:
+            run_tardis_download(
+                start=stamp,
+                end=stamp,
+                base_dir=str(destination),
+                symbol=symbol,
+                data_type=dataset,
+                exchange="binance-futures",
+                resample_label="right",
+            )
+
+def main() -> None:
+    """Run a minimal daily Binance Futures Tardis ingestion."""
+    run_day = previous_utc_day()
+    root = Path("/mnt/hdd-storage/data")
+    universe = active_binance_perps(run_day)
+    fetch_binance_futures_day(run_day, root, universe)
+
+if __name__ == "__main__":
+    main()
+```
+
+It can feel like a chore to make sure all your datasets scrape regularly, get pre-processed, are maintained in an organised collection with lots of accessibility via tooling, but it more than pays off in productivity terms. When you need the data, it will feel like a breeze. This is only a basic set of examples, and you will need to write a lot more than this, but its a start.
+
+### **Authors Note**
+
+---
+
+For the first time I have decided to let Claude do a bit of a refactor (on a fully human written draft) on some of the phrasing because I felt it was very poorly structured. I think it retains most of its original character, and provides a more enjoyable reading experience. I have only allowed minimal edits from my entirely hand written draft, but if anyone thinks its significantly worse please drop me a message.
+
+The Quant Stack is a reader-supported publication. To receive new posts and support my work, consider becoming a free or paid subscriber.
